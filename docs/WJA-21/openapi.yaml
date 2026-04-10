@@ -1,0 +1,768 @@
+openapi: 3.0.3
+info:
+  title: WJA-21 OMS/WMS/ERP/Barcode API Interface Spec
+  version: 1.0.0
+  description: |
+    Detailed API specification for cross-system interfaces.
+    Scope: OMS-WMS, WMS-ERP, Barcode App-WMS.
+servers:
+  - url: https://api.example.com
+security:
+  - bearerAuth: []
+tags:
+  - name: OMS-WMS
+  - name: WMS-ERP
+  - name: Barcode-WMS
+
+paths:
+  /v1/oms/orders:
+    post:
+      tags: [OMS-WMS]
+      summary: Create order in OMS and dispatch to WMS allocation queue
+      operationId: createOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreateRequest'
+      responses:
+        '201':
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderCreateResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Duplicate external order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Business rule violation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/oms/orders/{orderId}:
+    patch:
+      tags: [OMS-WMS]
+      summary: Update mutable fields of an order before wave release
+      operationId: updateOrder
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderUpdateRequest'
+      responses:
+        '200':
+          description: Order updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderUpdateResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Version conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/oms/orders/{orderId}/cancel:
+    post:
+      tags: [OMS-WMS]
+      summary: Cancel order and trigger cancellation propagation to WMS
+      operationId: cancelOrder
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCancelRequest'
+      responses:
+        '200':
+          description: Order canceled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderCancelResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Already shipped or non-cancellable state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/wms/erp/receipts/confirm:
+    post:
+      tags: [WMS-ERP]
+      summary: Notify ERP for receipt confirmation
+      operationId: confirmReceiptToErp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReceiptConfirmRequest'
+      responses:
+        '200':
+          description: Receipt confirmed in ERP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErpAckResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: ERP temporary failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/wms/erp/closing-data:
+    post:
+      tags: [WMS-ERP]
+      summary: Send day-end/month-end closing data from WMS to ERP
+      operationId: sendClosingData
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClosingDataRequest'
+      responses:
+        '202':
+          description: Accepted for async processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncAcceptedResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/wms/erp/invoices/{shipmentNo}:
+    get:
+      tags: [WMS-ERP]
+      summary: Retrieve invoice and transport billing details from ERP
+      operationId: getInvoiceInfo
+      parameters:
+        - name: shipmentNo
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 40
+        - name: includeLines
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Invoice information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceInfoResponse'
+        '404':
+          description: Invoice not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/wms/barcode/scans/inbound:
+    post:
+      tags: [Barcode-WMS]
+      summary: Record inbound scan event from barcode app
+      operationId: scanInbound
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InboundScanRequest'
+      responses:
+        '200':
+          description: Scan accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanAckResponse'
+        '400':
+          description: Invalid scan payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/wms/barcode/scans/outbound:
+    post:
+      tags: [Barcode-WMS]
+      summary: Record outbound scan event from barcode app
+      operationId: scanOutbound
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutboundScanRequest'
+      responses:
+        '200':
+          description: Scan accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanAckResponse'
+        '400':
+          description: Invalid scan payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/wms/inventory:
+    get:
+      tags: [Barcode-WMS]
+      summary: Query inventory by SKU and location
+      operationId: getInventoryBySkuLocation
+      parameters:
+        - name: skuCode
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 40
+        - name: locationCode
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 30
+      responses:
+        '200':
+          description: Inventory snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryLookupResponse'
+        '404':
+          description: Inventory not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/wms/barcode/sync:
+    post:
+      tags: [Barcode-WMS]
+      summary: Pull delta data for offline barcode clients
+      operationId: syncBarcodeData
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncRequest'
+      responses:
+        '200':
+          description: Sync payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema:
+        type: string
+        maxLength: 40
+
+  schemas:
+    OrderLine:
+      type: object
+      required: [lineNo, skuCode, qty, uom]
+      properties:
+        lineNo:
+          type: integer
+          minimum: 1
+        skuCode:
+          type: string
+          maxLength: 40
+        qty:
+          type: integer
+          minimum: 1
+        uom:
+          type: string
+          maxLength: 10
+
+    OrderCreateRequest:
+      type: object
+      required:
+        [requestId, channel, externalOrderNo, orderDateTime, customerCode, delivery, items]
+      properties:
+        requestId:
+          type: string
+          maxLength: 64
+          description: Idempotency key, unique per channel
+        channel:
+          type: string
+          enum: [B2B_PORTAL, MARKETPLACE, EDI, MANUAL]
+        externalOrderNo:
+          type: string
+          maxLength: 64
+        orderDateTime:
+          type: string
+          format: date-time
+        customerCode:
+          type: string
+          maxLength: 30
+        priorityHint:
+          type: string
+          enum: [NONE, HIGH, CRITICAL]
+          default: NONE
+        delivery:
+          $ref: '#/components/schemas/DeliveryInfo'
+        items:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/OrderLine'
+
+    OrderCreateResponse:
+      type: object
+      required: [orderId, status, acceptedAt]
+      properties:
+        orderId:
+          type: string
+        status:
+          type: string
+          enum: [RECEIVED, ALLOCATING]
+        acceptedAt:
+          type: string
+          format: date-time
+
+    OrderUpdateRequest:
+      type: object
+      required: [requestId, version]
+      properties:
+        requestId:
+          type: string
+          maxLength: 64
+        version:
+          type: integer
+          minimum: 1
+        delivery:
+          $ref: '#/components/schemas/DeliveryInfo'
+        items:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/OrderLine'
+
+    OrderUpdateResponse:
+      type: object
+      required: [orderId, status, version]
+      properties:
+        orderId:
+          type: string
+        status:
+          type: string
+          enum: [UPDATED, ALLOCATING, HOLD]
+        version:
+          type: integer
+
+    OrderCancelRequest:
+      type: object
+      required: [requestId, reasonCode]
+      properties:
+        requestId:
+          type: string
+          maxLength: 64
+        reasonCode:
+          type: string
+          enum: [CUSTOMER_REQUEST, PAYMENT_FAILED, FRAUD_RISK, DUPLICATE_ORDER, SYSTEM_ERROR]
+        reasonMessage:
+          type: string
+          maxLength: 300
+
+    OrderCancelResponse:
+      type: object
+      required: [orderId, status, canceledAt]
+      properties:
+        orderId:
+          type: string
+        status:
+          type: string
+          enum: [CANCEL_REQUESTED, CANCELED, PARTIAL_CANCEL_REJECTED]
+        canceledAt:
+          type: string
+          format: date-time
+
+    DeliveryInfo:
+      type: object
+      required: [recipientName, phone, zipCode, address1]
+      properties:
+        recipientName:
+          type: string
+          maxLength: 80
+        phone:
+          type: string
+          pattern: '^[0-9\\-]+$'
+          maxLength: 20
+        zipCode:
+          type: string
+          maxLength: 12
+        address1:
+          type: string
+          maxLength: 200
+        address2:
+          type: string
+          maxLength: 200
+        message:
+          type: string
+          maxLength: 120
+
+    ReceiptConfirmRequest:
+      type: object
+      required: [requestId, centerCode, receiptNo, receiptDateTime, items]
+      properties:
+        requestId:
+          type: string
+          maxLength: 64
+        centerCode:
+          type: string
+          maxLength: 20
+        receiptNo:
+          type: string
+          maxLength: 40
+        receiptDateTime:
+          type: string
+          format: date-time
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [skuCode, receivedQty, uom]
+            properties:
+              skuCode:
+                type: string
+              receivedQty:
+                type: integer
+                minimum: 0
+              defectQty:
+                type: integer
+                minimum: 0
+                default: 0
+              uom:
+                type: string
+
+    ClosingDataRequest:
+      type: object
+      required: [requestId, closingType, closingDate, centerCode, summary]
+      properties:
+        requestId:
+          type: string
+          maxLength: 64
+        closingType:
+          type: string
+          enum: [DAILY, MONTHLY]
+        closingDate:
+          type: string
+          format: date
+        centerCode:
+          type: string
+          maxLength: 20
+        summary:
+          type: object
+          required: [inboundQty, outboundQty, inventoryDelta]
+          properties:
+            inboundQty:
+              type: integer
+              minimum: 0
+            outboundQty:
+              type: integer
+              minimum: 0
+            inventoryDelta:
+              type: integer
+        lines:
+          type: array
+          maxItems: 10000
+          items:
+            type: object
+            required: [skuCode, openingQty, closingQty]
+            properties:
+              skuCode:
+                type: string
+              openingQty:
+                type: integer
+              closingQty:
+                type: integer
+
+    InvoiceInfoResponse:
+      type: object
+      required: [shipmentNo, invoiceNo, invoiceStatus, amount]
+      properties:
+        shipmentNo:
+          type: string
+        invoiceNo:
+          type: string
+        invoiceStatus:
+          type: string
+          enum: [PENDING, ISSUED, CANCELED]
+        issueDate:
+          type: string
+          format: date
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          default: KRW
+        lineItems:
+          type: array
+          items:
+            type: object
+            properties:
+              chargeType:
+                type: string
+              amount:
+                type: number
+                format: double
+
+    InboundScanRequest:
+      type: object
+      required: [requestId, deviceId, operatorId, centerCode, scanDateTime, barcode, locationCode]
+      properties:
+        requestId:
+          type: string
+          maxLength: 64
+        deviceId:
+          type: string
+          maxLength: 40
+        operatorId:
+          type: string
+          maxLength: 40
+        centerCode:
+          type: string
+          maxLength: 20
+        scanDateTime:
+          type: string
+          format: date-time
+        barcode:
+          type: string
+          maxLength: 120
+        locationCode:
+          type: string
+          maxLength: 30
+        qty:
+          type: integer
+          minimum: 1
+          default: 1
+
+    OutboundScanRequest:
+      allOf:
+        - $ref: '#/components/schemas/InboundScanRequest'
+        - type: object
+          properties:
+            waveNo:
+              type: string
+              maxLength: 40
+            shipmentNo:
+              type: string
+              maxLength: 40
+
+    ScanAckResponse:
+      type: object
+      required: [scanId, acceptedAt, status]
+      properties:
+        scanId:
+          type: string
+        acceptedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [ACCEPTED, DUPLICATED, REJECTED]
+
+    InventoryLookupResponse:
+      type: object
+      required: [skuCode, locationCode, onHand, available, allocated, updatedAt]
+      properties:
+        skuCode:
+          type: string
+        locationCode:
+          type: string
+        onHand:
+          type: integer
+        available:
+          type: integer
+        allocated:
+          type: integer
+        inTransit:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+
+    SyncRequest:
+      type: object
+      required: [deviceId, centerCode, lastSyncAt]
+      properties:
+        deviceId:
+          type: string
+          maxLength: 40
+        centerCode:
+          type: string
+          maxLength: 20
+        lastSyncAt:
+          type: string
+          format: date-time
+        resourceTypes:
+          type: array
+          items:
+            type: string
+            enum: [LOCATION, SKU, WAVE, PICK_TASK]
+
+    SyncResponse:
+      type: object
+      required: [syncAt, resources]
+      properties:
+        syncAt:
+          type: string
+          format: date-time
+        resources:
+          type: object
+          properties:
+            locations:
+              type: array
+              items:
+                type: object
+                properties:
+                  locationCode:
+                    type: string
+                  status:
+                    type: string
+            skus:
+              type: array
+              items:
+                type: object
+                properties:
+                  skuCode:
+                    type: string
+                  skuName:
+                    type: string
+
+    AsyncAcceptedResponse:
+      type: object
+      required: [jobId, acceptedAt, status]
+      properties:
+        jobId:
+          type: string
+        acceptedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [QUEUED]
+
+    ErpAckResponse:
+      type: object
+      required: [requestId, status, ackAt]
+      properties:
+        requestId:
+          type: string
+        status:
+          type: string
+          enum: [ACCEPTED, REJECTED]
+        ackAt:
+          type: string
+          format: date-time
+        erpDocNo:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [traceId, code, message, timestamp]
+      properties:
+        traceId:
+          type: string
+        code:
+          type: string
+          example: OMS_40001
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              reason:
+                type: string
+        retryable:
+          type: boolean
+        timestamp:
+          type: string
+          format: date-time
