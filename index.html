@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hello World</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg-start: #f4efe6;
+        --bg-end: #dbe7f0;
+        --card-bg: rgba(255, 255, 255, 0.82);
+        --text-main: #172033;
+        --text-subtle: #536076;
+        --accent: #d96c3f;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background:
+          radial-gradient(circle at top left, rgba(217, 108, 63, 0.22), transparent 32%),
+          linear-gradient(135deg, var(--bg-start), var(--bg-end));
+        color: var(--text-main);
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+      }
+
+      main {
+        width: min(100%, 640px);
+        padding: 48px 40px;
+        border: 1px solid rgba(23, 32, 51, 0.08);
+        border-radius: 28px;
+        background: var(--card-bg);
+        box-shadow: 0 24px 80px rgba(23, 32, 51, 0.12);
+        backdrop-filter: blur(16px);
+      }
+
+      p {
+        margin: 0 0 16px;
+        font-size: 0.95rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(3rem, 10vw, 5.5rem);
+        line-height: 0.95;
+        letter-spacing: -0.06em;
+      }
+
+      h1 span {
+        display: block;
+      }
+
+      small {
+        display: block;
+        margin-top: 20px;
+        font-size: 1rem;
+        color: var(--text-subtle);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p>WEB-11</p>
+      <h1><span>Hello</span><span>World</span></h1>
+      <small>앱 진입 화면에서 요구된 문구가 렌더링됩니다.</small>
+    </main>
+  </body>
+</html>
