@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>📅 초등 시간표</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      min-height: 100vh;
+      font-family: 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      background: #f0f4ff;
+      color: #1a1a2e;
+      overflow-x: hidden;
+    }
+
+    #root { max-width: 480px; margin: 0 auto; min-height: 100vh; position: relative; background: #fff; }
+
+    /* ── Onboarding ── */
+    .onboarding {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+      background: linear-gradient(160deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+    }
+    .onboarding h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 8px; }
+    .onboarding p { font-size: 1rem; opacity: 0.85; margin-bottom: 40px; }
+    .onboarding .card {
+      background: rgba(255,255,255,0.15);
+      border-radius: 20px;
+      padding: 28px 24px;
+      width: 100%;
+      backdrop-filter: blur(8px);
+    }
+    .onboarding label { display: block; font-size: 0.95rem; font-weight: 600; margin-bottom: 10px; opacity: 0.9; }
+    .onboarding select {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: none;
+      font-size: 1.1rem;
+      font-weight: 600;
+      background: rgba(255,255,255,0.9);
+      color: #333;
+      margin-bottom: 20px;
+      outline: none;
+    }
+    .btn-primary {
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      border: none;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: #fff;
+      color: #667eea;
+      transition: transform 0.1s, box-shadow 0.1s;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+    .btn-primary:active { transform: scale(0.97); }
+
+    /* ── Layout ── */
+    .app-header {
+      position: sticky; top: 0; z-index: 10;
+      background: #fff;
+      border-bottom: 1px solid #e8ecf4;
+      padding: 14px 20px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .app-header h2 { font-size: 1.15rem; font-weight: 700; color: #1a1a2e; }
+    .header-sub { font-size: 0.8rem; color: #888; margin-top: 2px; }
+    .icon-btn {
+      background: none; border: none; font-size: 1.3rem; cursor: pointer;
+      padding: 6px; border-radius: 8px; color: #555;
+      transition: background 0.15s;
+    }
+    .icon-btn:hover { background: #f0f4ff; }
+
+    .main-content { padding-bottom: 80px; }
+
+    /* ── Bottom Nav ── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px;
+      background: #fff;
+      border-top: 1px solid #e8ecf4;
+      display: flex;
+      z-index: 20;
+    }
+    .nav-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      padding: 10px 0 8px;
+      border: none; background: none; cursor: pointer;
+      font-size: 0.7rem; font-weight: 600; color: #aaa;
+      transition: color 0.15s;
+    }
+    .nav-item.active { color: #667eea; }
+    .nav-icon { font-size: 1.4rem; margin-bottom: 2px; }
+
+    /* ── Today Summary Card ── */
+    .summary-card {
+      margin: 16px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 20px;
+      padding: 20px 22px;
+      color: #fff;
+      box-shadow: 0 6px 24px rgba(102,126,234,0.4);
+    }
+    .summary-date { font-size: 0.85rem; opacity: 0.8; margin-bottom: 6px; }
+    .summary-next { font-size: 1.6rem; font-weight: 800; margin-bottom: 4px; }
+    .summary-meta { display: flex; gap: 16px; margin-top: 12px; }
+    .summary-stat { text-align: center; }
+    .summary-stat-num { font-size: 1.4rem; font-weight: 800; display: block; }
+    .summary-stat-label { font-size: 0.7rem; opacity: 0.75; }
+    .summary-countdown {
+      margin-top: 14px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    /* ── Weekly Grid ── */
+    .section-title {
+      padding: 8px 16px 6px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .grid-container { overflow-x: auto; padding: 0 16px 12px; }
+    .grid-table { width: 100%; min-width: 320px; border-collapse: collapse; }
+    .grid-table th {
+      padding: 6px 2px;
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #999;
+    }
+    .grid-table th.today-col { color: #667eea; }
+    .grid-table td {
+      padding: 3px;
+      text-align: center;
+    }
+    .period-label {
+      font-size: 0.68rem;
+      color: #bbb;
+      font-weight: 600;
+      padding: 0 4px;
+    }
+
+    .subject-cell {
+      border-radius: 8px;
+      padding: 6px 3px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      word-break: keep-all;
+      line-height: 1.2;
+      border: 2px solid transparent;
+      position: relative;
+    }
+    .subject-cell:active { transform: scale(0.93); }
+    .subject-cell.empty {
+      background: #f5f7ff;
+      color: #ddd;
+      border: 1.5px dashed #e0e4f0;
+      cursor: default;
+    }
+    .subject-cell.today-col {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .subject-cell.current-period {
+      animation: pulse 1.5s ease-in-out infinite;
+      border-color: rgba(255,255,255,0.8) !important;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(102,126,234,0.5); }
+      50% { box-shadow: 0 0 0 8px rgba(102,126,234,0); }
+    }
+
+    /* ── Subject Detail Sheet ── */
+    .sheet-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      z-index: 50; display: flex; align-items: flex-end;
+    }
+    .sheet {
+      background: #fff;
+      border-radius: 24px 24px 0 0;
+      width: 100%; max-width: 480px;
+      margin: 0 auto;
+      max-height: 80vh;
+      overflow-y: auto;
+      padding: 20px 20px 40px;
+      animation: slideUp 0.25s ease-out;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .sheet-handle {
+      width: 40px; height: 4px; border-radius: 2px;
+      background: #e0e4f0; margin: 0 auto 20px;
+    }
+    .sheet-subject-header {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
+    }
+    .sheet-color-dot {
+      width: 44px; height: 44px; border-radius: 12px;
+      flex-shrink: 0;
+    }
+    .sheet-subject-name { font-size: 1.3rem; font-weight: 800; }
+    .sheet-teacher { font-size: 0.85rem; color: #888; margin-top: 2px; }
+    .sheet-section-label {
+      font-size: 0.75rem; font-weight: 700; color: #aaa;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      margin: 16px 0 8px;
+    }
+    .supply-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px;
+      background: #f8f9ff;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+    }
+    .supply-check {
+      width: 22px; height: 22px; border-radius: 6px;
+      border: 2px solid #c4ccee;
+      cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .supply-check.checked { background: #667eea; border-color: #667eea; color: #fff; font-size: 0.8rem; }
+    .supply-text { flex: 1; }
+    .supply-text.checked { text-decoration: line-through; color: #bbb; }
+    .empty-supplies { text-align: center; color: #ccc; padding: 20px; font-size: 0.9rem; }
+
+    /* ── Edit View ── */
+    .edit-grid-container { padding: 0 16px 12px; overflow-x: auto; }
+    .edit-grid { display: grid; grid-template-columns: 32px repeat(5, 1fr); gap: 3px; min-width: 320px; }
+    .edit-header {
+      text-align: center; font-size: 0.72rem; font-weight: 700;
+      color: #aaa; padding: 6px 2px;
+    }
+    .edit-header.today-col { color: #667eea; }
+    .edit-period-label {
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.65rem; font-weight: 700; color: #bbb;
+    }
+    .edit-cell {
+      min-height: 44px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 0.7rem; font-weight: 700;
+      word-break: keep-all; line-height: 1.2; padding: 4px;
+      text-align: center; transition: transform 0.1s;
+      position: relative;
+    }
+    .edit-cell:active { transform: scale(0.93); }
+    .edit-cell.empty {
+      background: #f5f7ff; color: #d0d5ee;
+      border: 1.5px dashed #dde1f5;
+    }
+    .edit-cell .remove-btn {
+      position: absolute; top: -4px; right: -4px;
+      background: #ff6b6b; color: #fff;
+      border-radius: 50%; width: 16px; height: 16px;
+      font-size: 0.6rem; display: flex; align-items: center; justify-content: center;
+      border: none; cursor: pointer;
+    }
+
+    /* Subject Picker Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 60; display: flex; align-items: flex-end;
+    }
+    .modal {
+      background: #fff;
+      border-radius: 24px 24px 0 0;
+      width: 100%; max-width: 480px;
+      margin: 0 auto;
+      padding: 20px 20px 40px;
+      animation: slideUp 0.25s ease-out;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 16px; }
+    .subject-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .subject-list-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #f8f9ff;
+      cursor: pointer;
+      transition: background 0.15s;
+      border: 2px solid transparent;
+    }
+    .subject-list-item:hover { background: #eef0ff; }
+    .subject-list-item.selected { border-color: #667eea; background: #f0f4ff; }
+    .subject-color-badge {
+      width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+    }
+    .subject-list-name { font-size: 0.95rem; font-weight: 700; flex: 1; }
+    .add-subject-btn {
+      width: 100%; padding: 13px;
+      border-radius: 12px; border: 2px dashed #c4ccee;
+      background: none; cursor: pointer;
+      font-size: 0.9rem; font-weight: 600; color: #667eea;
+      transition: background 0.15s;
+    }
+    .add-subject-btn:hover { background: #f0f4ff; }
+    .btn-clear {
+      width: 100%; padding: 13px;
+      border-radius: 12px; border: none;
+      background: #fff3f3; cursor: pointer;
+      font-size: 0.9rem; font-weight: 600; color: #ff6b6b;
+      margin-top: 8px;
+    }
+    .btn-cancel {
+      width: 100%; padding: 13px;
+      border-radius: 12px; border: 1.5px solid #e0e4f0;
+      background: none; cursor: pointer;
+      font-size: 0.9rem; font-weight: 600; color: #888;
+      margin-top: 8px;
+    }
+
+    /* Subject Edit Form */
+    .form-field { margin-bottom: 16px; }
+    .form-field label { display: block; font-size: 0.8rem; font-weight: 700; color: #555; margin-bottom: 6px; }
+    .form-input {
+      width: 100%; padding: 12px 14px;
+      border-radius: 10px; border: 1.5px solid #dde1f5;
+      font-size: 1rem; outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus { border-color: #667eea; }
+    .color-palette {
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;
+    }
+    .color-swatch {
+      width: 100%; aspect-ratio: 1;
+      border-radius: 10px; cursor: pointer;
+      border: 3px solid transparent;
+      transition: transform 0.1s, border-color 0.15s;
+    }
+    .color-swatch:active { transform: scale(0.9); }
+    .color-swatch.selected { border-color: #1a1a2e; transform: scale(1.05); }
+    .btn-save {
+      width: 100%; padding: 14px;
+      border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff; font-size: 1rem; font-weight: 700;
+      cursor: pointer; transition: transform 0.1s;
+      margin-top: 4px;
+    }
+    .btn-save:active { transform: scale(0.97); }
+
+    /* Settings */
+    .settings-section { padding: 16px 16px 0; }
+    .settings-card {
+      background: #f8f9ff; border-radius: 16px; overflow: hidden; margin-bottom: 16px;
+    }
+    .settings-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 16px;
+      border-bottom: 1px solid #eef0ff;
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-row-label { font-size: 0.95rem; font-weight: 600; }
+    .settings-row-sub { font-size: 0.78rem; color: #aaa; margin-top: 2px; }
+    .settings-select {
+      padding: 8px 12px; border-radius: 8px;
+      border: 1.5px solid #dde1f5;
+      font-size: 0.9rem; font-weight: 600; color: #333;
+      background: #fff; outline: none;
+    }
+    .profile-badge {
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 16px;
+      color: #fff;
+      margin: 16px 16px 0;
+    }
+    .profile-icon { font-size: 2rem; }
+    .profile-info-name { font-size: 1.1rem; font-weight: 800; }
+    .profile-info-sub { font-size: 0.8rem; opacity: 0.75; margin-top: 2px; }
+    .btn-danger {
+      width: calc(100% - 32px); margin: 16px;
+      padding: 14px;
+      border-radius: 12px; border: none;
+      background: #fff3f3; color: #ff6b6b;
+      font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .btn-danger:hover { background: #ffe0e0; }
+
+    /* Confirm Dialog */
+    .dialog-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 100; display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .dialog {
+      background: #fff; border-radius: 20px; padding: 28px 24px;
+      width: 100%; max-width: 340px;
+      animation: fadeIn 0.18s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+    .dialog h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 10px; }
+    .dialog p { font-size: 0.9rem; color: #666; margin-bottom: 24px; line-height: 1.5; }
+    .dialog-buttons { display: flex; gap: 10px; }
+    .dialog-btn {
+      flex: 1; padding: 13px;
+      border-radius: 12px; border: none;
+      font-size: 0.95rem; font-weight: 700; cursor: pointer;
+    }
+    .dialog-btn.cancel { background: #f0f4ff; color: #667eea; }
+    .dialog-btn.confirm { background: #ff6b6b; color: #fff; }
+
+    /* Supplies page */
+    .supply-page { padding: 0 16px; }
+    .supply-day-tabs {
+      display: flex; gap: 6px; margin-bottom: 12px;
+      overflow-x: auto; padding-bottom: 4px;
+    }
+    .supply-day-tab {
+      padding: 8px 14px; border-radius: 20px;
+      border: 1.5px solid #dde1f5; background: none;
+      font-size: 0.8rem; font-weight: 700; cursor: pointer;
+      white-space: nowrap; color: #888;
+      transition: all 0.15s;
+    }
+    .supply-day-tab.active {
+      background: #667eea; border-color: #667eea; color: #fff;
+    }
+    .supply-subject-group { margin-bottom: 16px; }
+    .supply-subject-header {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 8px;
+    }
+    .supply-subject-color {
+      width: 10px; height: 10px; border-radius: 3px;
+    }
+    .supply-subject-name { font-size: 0.9rem; font-weight: 700; }
+    .supply-add-row {
+      display: flex; gap: 8px; margin-top: 6px;
+    }
+    .supply-input {
+      flex: 1; padding: 10px 12px;
+      border-radius: 10px; border: 1.5px solid #dde1f5;
+      font-size: 0.9rem; outline: none;
+    }
+    .supply-input:focus { border-color: #667eea; }
+    .supply-add-btn {
+      padding: 10px 16px; border-radius: 10px;
+      background: #667eea; color: #fff; border: none;
+      font-size: 0.9rem; font-weight: 700; cursor: pointer;
+    }
+    .supply-delete-btn {
+      background: none; border: none; color: #ddd; cursor: pointer;
+      font-size: 1rem; padding: 2px 6px;
+    }
+
+    .empty-state {
+      text-align: center; padding: 40px 20px; color: #ccc;
+    }
+    .empty-state-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .empty-state-text { font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+// ── Constants ──────────────────────────────────────────────
+const DAYS = ['월', '화', '수', '목', '금'];
+const DAY_FULL = ['월요일', '화요일', '수요일', '목요일', '금요일'];
+
+const PERIODS = [
+  { p: 1, start: [9,  0], end: [9, 40] },
+  { p: 2, start: [9, 50], end: [10, 30] },
+  { p: 3, start: [10, 40], end: [11, 20] },
+  { p: 4, start: [11, 30], end: [12, 10] },
+  { p: 5, start: [13,  0], end: [13, 40] },
+  { p: 6, start: [13, 50], end: [14, 30] },
+  { p: 7, start: [14, 40], end: [15, 20] },
+];
+
+// Korean school lunch: 12:10–13:00
+const LUNCH_START = [12, 10];
+const LUNCH_END   = [13, 0];
+
+const COLORS = [
+  '#FF6B6B', '#FF9F43', '#FECA57', '#48DBFB',
+  '#1DD1A1', '#54A0FF', '#9B59B6', '#FF9FF3',
+  '#FF6348', '#00D2D3', '#5F27CD', '#B8FF00',
+];
+
+const STORAGE_KEY = {
+  profile:  'tt_profile',
+  subjects: 'tt_subjects',
+  slots:    'tt_slots',
+  supplies: 'tt_supplies',
+  settings: 'tt_settings',
+};
+
+// ── Helpers ────────────────────────────────────────────────
+function load(key, def) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; }
+  catch { return def; }
+}
+function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+function uid() { return Math.random().toString(36).slice(2, 10); }
+
+function todayDow() {
+  const d = new Date().getDay(); // 0=Sun
+  return d >= 1 && d <= 5 ? d - 1 : -1; // 0=Mon..4=Fri, -1=weekend
+}
+
+function timeToMins([h, m]) { return h * 60 + m; }
+
+function currentPeriodInfo() {
+  const now = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  for (const per of PERIODS) {
+    const s = timeToMins(per.start);
+    const e = timeToMins(per.end);
+    if (mins >= s && mins < e) return { type: 'class', period: per.p, remaining: e - mins };
+  }
+  // check break / lunch
+  for (let i = 0; i < PERIODS.length - 1; i++) {
+    const breakStart = timeToMins(PERIODS[i].end);
+    const breakEnd   = timeToMins(PERIODS[i + 1].start);
+    // lunch special case
+    const isLunch = PERIODS[i].p === 4;
+    if (mins >= breakStart && mins < breakEnd) {
+      return { type: isLunch ? 'lunch' : 'break', nextPeriod: PERIODS[i + 1].p, remaining: breakEnd - mins };
+    }
+  }
+  // before first period
+  if (mins < timeToMins(PERIODS[0].start)) {
+    return { type: 'before', nextPeriod: 1, remaining: timeToMins(PERIODS[0].start) - mins };
+  }
+  return { type: 'after' };
+}
+
+function fmtMins(m) {
+  if (m <= 0) return '0분';
+  if (m >= 60) return `${Math.floor(m/60)}시간 ${m % 60 ? m % 60 + '분' : ''}`.trim();
+  return `${m}분`;
+}
+
+function todayDateStr() {
+  const d = new Date();
+  return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${['일','월','화','수','목','금','토'][d.getDay()]})`;
+}
+
+// ── App ────────────────────────────────────────────────────
+function App() {
+  const [profile,  setProfileState]  = useState(() => load(STORAGE_KEY.profile,  null));
+  const [subjects, setSubjectsState] = useState(() => load(STORAGE_KEY.subjects, {}));
+  const [slots,    setSlotsState]    = useState(() => load(STORAGE_KEY.slots,    {}));
+  const [supplies, setSuppliesState] = useState(() => load(STORAGE_KEY.supplies, {}));
+  const [settings, setSettingsState] = useState(() => load(STORAGE_KEY.settings, { classAlertMinutes: 10 }));
+  const [view, setView] = useState('home'); // home | edit | supplies | settings
+  const [detailSlot, setDetailSlot] = useState(null); // { day, period, subjectId }
+  const [confirm, setConfirm] = useState(null); // { title, message, onConfirm }
+
+  function setProfile(v)  { setProfileState(v);  save(STORAGE_KEY.profile,  v); }
+  function setSubjects(v) { setSubjectsState(v); save(STORAGE_KEY.subjects, v); }
+  function setSlots(v)    { setSlotsState(v);    save(STORAGE_KEY.slots,    v); }
+  function setSupplies(v) { setSuppliesState(v); save(STORAGE_KEY.supplies, v); }
+  function setSettings(v) { setSettingsState(v); save(STORAGE_KEY.settings, v); }
+
+  const slotKey = (d, p) => `${d}_${p}`;
+  const getSlotSubject = (d, p) => {
+    const id = slots[slotKey(d, p)];
+    return id ? subjects[id] : null;
+  };
+
+  function openDetail(day, period) {
+    const id = slots[slotKey(day, period)];
+    if (!id) return;
+    setDetailSlot({ day, period, subjectId: id });
+  }
+
+  function deleteProfile() {
+    setConfirm({
+      title: '프로필 삭제',
+      message: '모든 시간표와 준비물 정보가 삭제됩니다. 계속하시겠습니까?',
+      onConfirm: () => {
+        setProfile(null);
+        setSubjects({});
+        setSlots({});
+        setSupplies({});
+        setConfirm(null);
+      }
+    });
+  }
+
+  if (!profile) {
+    return <OnboardingScreen onComplete={setProfile} />;
+  }
+
+  return (
+    <div>
+      {view === 'home' && (
+        <HomeScreen
+          profile={profile}
+          subjects={subjects}
+          slots={slots}
+          supplies={supplies}
+          slotKey={slotKey}
+          getSlotSubject={getSlotSubject}
+          onCellTap={openDetail}
+        />
+      )}
+      {view === 'edit' && (
+        <EditScreen
+          subjects={subjects}
+          slots={slots}
+          slotKey={slotKey}
+          getSlotSubject={getSlotSubject}
+          onUpdateSubjects={setSubjects}
+          onUpdateSlots={setSlots}
+        />
+      )}
+      {view === 'supplies' && (
+        <SuppliesScreen
+          subjects={subjects}
+          slots={slots}
+          supplies={supplies}
+          slotKey={slotKey}
+          onUpdateSupplies={setSupplies}
+        />
+      )}
+      {view === 'settings' && (
+        <SettingsScreen
+          profile={profile}
+          settings={settings}
+          onUpdateSettings={setSettings}
+          onDeleteProfile={deleteProfile}
+        />
+      )}
+
+      <BottomNav current={view} onChange={setView} />
+
+      {detailSlot && (
+        <SubjectDetailSheet
+          subject={subjects[detailSlot.subjectId]}
+          supplies={supplies[detailSlot.subjectId] || []}
+          onClose={() => setDetailSlot(null)}
+          onToggleSupply={(supplyId) => {
+            const today = new Date().toDateString();
+            const list = (supplies[detailSlot.subjectId] || []).map(s =>
+              s.id === supplyId
+                ? { ...s, checkedDate: s.checkedDate === today ? null : today }
+                : s
+            );
+            setSupplies({ ...supplies, [detailSlot.subjectId]: list });
+          }}
+        />
+      )}
+
+      {confirm && (
+        <ConfirmDialog
+          title={confirm.title}
+          message={confirm.message}
+          onConfirm={confirm.onConfirm}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Onboarding ─────────────────────────────────────────────
+function OnboardingScreen({ onComplete }) {
+  const [grade, setGrade] = useState('3');
+  const [classNo, setClassNo] = useState('1');
+  return (
+    <div className="onboarding">
+      <h1>📅 초등 시간표</h1>
+      <p>학년과 반을 선택해 주세요</p>
+      <div className="card">
+        <label>학년</label>
+        <select value={grade} onChange={e => setGrade(e.target.value)}>
+          {[1,2,3,4,5,6].map(g => <option key={g} value={g}>{g}학년</option>)}
+        </select>
+        <label>반</label>
+        <select value={classNo} onChange={e => setClassNo(e.target.value)}>
+          {Array.from({length:15},(_,i)=>i+1).map(c => <option key={c} value={c}>{c}반</option>)}
+        </select>
+        <button className="btn-primary" onClick={() => onComplete({ grade: +grade, classNo: +classNo })}>
+          시작하기
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Home Screen ────────────────────────────────────────────
+function HomeScreen({ profile, subjects, slots, supplies, slotKey, getSlotSubject, onCellTap }) {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  const dow = todayDow(); // 0..4 or -1
+  const perInfo = currentPeriodInfo();
+
+  // today's schedule
+  const todaySlots = PERIODS.map(({ p }) => ({
+    period: p,
+    subject: dow >= 0 ? getSlotSubject(dow, p) : null,
+  }));
+  const totalToday = todaySlots.filter(s => s.subject).length;
+  const doneToday = dow < 0 ? 0 : (() => {
+    const mins = now.getHours() * 60 + now.getMinutes();
+    return todaySlots.filter(s => s.subject && timeToMins(PERIODS[s.period - 1].end) <= mins).length;
+  })();
+  const remaining = totalToday - doneToday;
+
+  let nextSubject = '없음';
+  if (dow >= 0) {
+    const upcoming = PERIODS.filter(({ p, start }) => {
+      const mins = now.getHours() * 60 + now.getMinutes();
+      return timeToMins(start) > mins && getSlotSubject(dow, p);
+    });
+    if (upcoming.length) {
+      const subj = getSlotSubject(dow, upcoming[0].p);
+      nextSubject = subj ? subj.name : '없음';
+    } else if (perInfo.type === 'class') {
+      const s = getSlotSubject(dow, perInfo.period);
+      nextSubject = s ? s.name : '없음';
+    }
+  }
+
+  let countdownMsg = '';
+  if (dow < 0) {
+    countdownMsg = '오늘은 학교 가는 날이 아니에요! 😄';
+  } else if (perInfo.type === 'class') {
+    countdownMsg = `${perInfo.period}교시 진행 중 · 수업 종료까지 ${fmtMins(perInfo.remaining)}`;
+  } else if (perInfo.type === 'break') {
+    countdownMsg = `쉬는 시간 · ${perInfo.nextPeriod}교시 시작까지 ${fmtMins(perInfo.remaining)}`;
+  } else if (perInfo.type === 'lunch') {
+    countdownMsg = `점심 시간 · 5교시 시작까지 ${fmtMins(perInfo.remaining)}`;
+  } else if (perInfo.type === 'before') {
+    countdownMsg = `1교시 시작까지 ${fmtMins(perInfo.remaining)}`;
+  } else {
+    countdownMsg = '오늘 수업이 모두 끝났어요! 🎉';
+  }
+
+  return (
+    <div>
+      <div className="app-header">
+        <div>
+          <div className="app-header h2">{`${profile.grade}학년 ${profile.classNo}반 시간표`}</div>
+          <div className="header-sub">{todayDateStr()}</div>
+        </div>
+      </div>
+      <div className="main-content">
+        {/* Today Summary Card */}
+        <div className="summary-card">
+          <div className="summary-date">{todayDateStr()}</div>
+          <div className="summary-next">
+            {dow < 0 ? '주말이에요 😊' : nextSubject === '없음' ? '수업 끝! 🎉' : `다음 수업: ${nextSubject}`}
+          </div>
+          <div className="summary-meta">
+            <div className="summary-stat">
+              <span className="summary-stat-num">{totalToday}</span>
+              <span className="summary-stat-label">전체 교시</span>
+            </div>
+            <div className="summary-stat">
+              <span className="summary-stat-num">{doneToday}</span>
+              <span className="summary-stat-label">완료 교시</span>
+            </div>
+            <div className="summary-stat">
+              <span className="summary-stat-num">{remaining}</span>
+              <span className="summary-stat-label">남은 교시</span>
+            </div>
+          </div>
+          <div className="summary-countdown">{countdownMsg}</div>
+        </div>
+
+        {/* Weekly Grid */}
+        <div className="section-title">이번 주 시간표</div>
+        <div className="grid-container">
+          <table className="grid-table">
+            <thead>
+              <tr>
+                <th></th>
+                {DAYS.map((d, i) => (
+                  <th key={i} className={i === dow ? 'today-col' : ''}>{d}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {PERIODS.map(({ p }) => (
+                <tr key={p}>
+                  <td className="period-label">{p}</td>
+                  {[0,1,2,3,4].map(d => {
+                    const subj = getSlotSubject(d, p);
+                    const isToday = d === dow;
+                    const isCurrent = isToday && perInfo.type === 'class' && perInfo.period === p;
+                    return (
+                      <td key={d}>
+                        <div
+                          className={`subject-cell ${!subj ? 'empty' : ''} ${isToday ? 'today-col' : ''} ${isCurrent ? 'current-period' : ''}`}
+                          style={subj ? { background: subj.color, color: '#fff' } : {}}
+                          onClick={() => subj && onCellTap(d, p)}
+                        >
+                          {subj ? subj.name : '·'}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Edit Screen ────────────────────────────────────────────
+function EditScreen({ subjects, slots, slotKey, getSlotSubject, onUpdateSubjects, onUpdateSlots }) {
+  const [picker, setPicker] = useState(null); // { day, period }
+  const [subjectForm, setSubjectForm] = useState(null); // null | 'new' | subjectId
+  const dow = todayDow();
+
+  function assignSlot(day, period, subjectId) {
+    const key = slotKey(day, period);
+    if (subjectId === null) {
+      const next = { ...slots };
+      delete next[key];
+      onUpdateSlots(next);
+    } else {
+      onUpdateSlots({ ...slots, [key]: subjectId });
+    }
+    setPicker(null);
+  }
+
+  function saveSubject(id, data) {
+    const next = { ...subjects, [id]: data };
+    onUpdateSubjects(next);
+    setSubjectForm(null);
+  }
+
+  function deleteSubject(id) {
+    const nextS = { ...subjects };
+    delete nextS[id];
+    const nextSl = Object.fromEntries(
+      Object.entries(slots).filter(([, v]) => v !== id)
+    );
+    onUpdateSubjects(nextS);
+    onUpdateSlots(nextSl);
+  }
+
+  return (
+    <div>
+      <div className="app-header">
+        <div className="app-header h2" style={{fontWeight:700,fontSize:'1.1rem'}}>시간표 편집</div>
+        <button className="add-subject-btn" style={{width:'auto',padding:'8px 14px',borderRadius:10,fontSize:'0.82rem'}}
+          onClick={() => setSubjectForm('new')}>+ 과목 추가</button>
+      </div>
+      <div className="main-content" style={{paddingTop:8}}>
+        <div className="edit-grid-container">
+          <div className="edit-grid">
+            <div></div>
+            {DAYS.map((d, i) => (
+              <div key={i} className={`edit-header ${i === dow ? 'today-col' : ''}`}>{d}</div>
+            ))}
+            {PERIODS.map(({ p }) => (
+              <React.Fragment key={p}>
+                <div className="edit-period-label">{p}</div>
+                {[0,1,2,3,4].map(d => {
+                  const subj = getSlotSubject(d, p);
+                  return (
+                    <div
+                      key={d}
+                      className={`edit-cell ${!subj ? 'empty' : ''}`}
+                      style={subj ? { background: subj.color, color: '#fff', position:'relative' } : {}}
+                      onClick={() => setPicker({ day: d, period: p })}
+                    >
+                      {subj ? subj.name : '+'}
+                      {subj && (
+                        <button className="remove-btn" onClick={e => { e.stopPropagation(); assignSlot(d, p, null); }}>✕</button>
+                      )}
+                    </div>
+                  );
+                })}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+
+        {/* Subject list */}
+        <div className="section-title">등록된 과목</div>
+        <div style={{padding:'0 16px 12px'}}>
+          {Object.keys(subjects).length === 0 && (
+            <div className="empty-state">
+              <div className="empty-state-icon">📚</div>
+              <div className="empty-state-text">등록된 과목이 없어요.<br/>+ 과목 추가를 눌러 시작하세요.</div>
+            </div>
+          )}
+          {Object.entries(subjects).map(([id, s]) => (
+            <div key={id} className="subject-list-item" style={{marginBottom:6}}>
+              <div className="subject-color-badge" style={{background:s.color, borderRadius:8}}></div>
+              <span className="subject-list-name">{s.name}</span>
+              {s.teacher && <span style={{fontSize:'0.78rem',color:'#aaa'}}>{s.teacher} 선생님</span>}
+              <button className="icon-btn" onClick={() => setSubjectForm(id)}>✏️</button>
+              <button className="icon-btn" style={{color:'#ff6b6b'}} onClick={() => deleteSubject(id)}>🗑️</button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {picker && (
+        <SubjectPickerModal
+          subjects={subjects}
+          current={slots[slotKey(picker.day, picker.period)]}
+          onSelect={id => assignSlot(picker.day, picker.period, id)}
+          onClear={() => assignSlot(picker.day, picker.period, null)}
+          onClose={() => setPicker(null)}
+          onAddNew={() => { setPicker(null); setSubjectForm('new'); }}
+          label={`${DAYS[picker.day]}요일 ${picker.period}교시`}
+        />
+      )}
+
+      {subjectForm !== null && (
+        <SubjectFormModal
+          id={subjectForm === 'new' ? null : subjectForm}
+          initial={subjectForm !== 'new' ? subjects[subjectForm] : null}
+          onSave={saveSubject}
+          onClose={() => setSubjectForm(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Subject Picker Modal ───────────────────────────────────
+function SubjectPickerModal({ subjects, current, onSelect, onClear, onClose, onAddNew, label }) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="sheet-handle"></div>
+        <h3>{label} 과목 선택</h3>
+        <div className="subject-list">
+          {Object.entries(subjects).map(([id, s]) => (
+            <div
+              key={id}
+              className={`subject-list-item ${current === id ? 'selected' : ''}`}
+              onClick={() => onSelect(id)}
+            >
+              <div className="subject-color-badge" style={{background:s.color}}></div>
+              <span className="subject-list-name">{s.name}</span>
+              {s.teacher && <span style={{fontSize:'0.78rem',color:'#aaa'}}>{s.teacher}</span>}
+              {current === id && <span>✓</span>}
+            </div>
+          ))}
+          {Object.keys(subjects).length === 0 && (
+            <div style={{textAlign:'center',color:'#ccc',padding:'16px',fontSize:'0.9rem'}}>
+              등록된 과목이 없어요
+            </div>
+          )}
+        </div>
+        <button className="add-subject-btn" onClick={onAddNew}>+ 새 과목 만들기</button>
+        {current && <button className="btn-clear" onClick={onClear}>이 교시 비우기</button>}
+        <button className="btn-cancel" onClick={onClose}>취소</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Subject Form Modal ─────────────────────────────────────
+function SubjectFormModal({ id, initial, onSave, onClose }) {
+  const [name, setName] = useState(initial?.name || '');
+  const [color, setColor] = useState(initial?.color || COLORS[0]);
+  const [teacher, setTeacher] = useState(initial?.teacher || '');
+  const isNew = !id;
+
+  function handleSave() {
+    const trimmed = name.trim().slice(0, 10);
+    if (!trimmed) return;
+    onSave(id || uid(), { name: trimmed, color, teacher: teacher.trim() || undefined });
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="sheet-handle"></div>
+        <h3>{isNew ? '새 과목 추가' : '과목 수정'}</h3>
+        <div className="form-field">
+          <label>과목명 (최대 10자)</label>
+          <input
+            className="form-input"
+            value={name}
+            onChange={e => setName(e.target.value.slice(0, 10))}
+            placeholder="예: 국어, 수학, 체육…"
+          />
+        </div>
+        <div className="form-field">
+          <label>대표 색상</label>
+          <div className="color-palette">
+            {COLORS.map(c => (
+              <div
+                key={c}
+                className={`color-swatch ${c === color ? 'selected' : ''}`}
+                style={{background: c}}
+                onClick={() => setColor(c)}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="form-field">
+          <label>담당 선생님 (선택)</label>
+          <input
+            className="form-input"
+            value={teacher}
+            onChange={e => setTeacher(e.target.value)}
+            placeholder="예: 김선생님"
+          />
+        </div>
+        <button className="btn-save" onClick={handleSave} disabled={!name.trim()}>
+          {isNew ? '과목 추가' : '저장'}
+        </button>
+        <button className="btn-cancel" style={{marginTop:8}} onClick={onClose}>취소</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Subject Detail Sheet ───────────────────────────────────
+function SubjectDetailSheet({ subject, supplies, onClose, onToggleSupply }) {
+  const today = new Date().toDateString();
+  if (!subject) return null;
+  return (
+    <div className="sheet-overlay" onClick={onClose}>
+      <div className="sheet" onClick={e => e.stopPropagation()}>
+        <div className="sheet-handle"></div>
+        <div className="sheet-subject-header">
+          <div className="sheet-color-dot" style={{background: subject.color}}></div>
+          <div>
+            <div className="sheet-subject-name">{subject.name}</div>
+            {subject.teacher && <div className="sheet-teacher">{subject.teacher} 선생님</div>}
+          </div>
+        </div>
+        <div className="sheet-section-label">준비물</div>
+        {supplies.length === 0 && <div className="empty-supplies">등록된 준비물이 없어요</div>}
+        {supplies.map(s => {
+          const checked = s.checkedDate === today;
+          return (
+            <div key={s.id} className="supply-item">
+              <div
+                className={`supply-check ${checked ? 'checked' : ''}`}
+                onClick={() => onToggleSupply(s.id)}
+              >
+                {checked && '✓'}
+              </div>
+              <span className={`supply-text ${checked ? 'checked' : ''}`}>{s.name}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Supplies Screen ────────────────────────────────────────
+function SuppliesScreen({ subjects, slots, supplies, slotKey, onUpdateSupplies }) {
+  const dow = todayDow();
+  const [activeDay, setActiveDay] = useState(dow >= 0 ? dow : 0);
+  const [inputs, setInputs] = useState({});
+  const today = new Date().toDateString();
+
+  // get unique subjects for this day
+  const daySubjects = Array.from(
+    new Set(PERIODS.map(({ p }) => slots[slotKey(activeDay, p)]).filter(Boolean))
+  ).map(id => ({ id, ...subjects[id] })).filter(s => s.name);
+
+  function addSupply(subjectId) {
+    const text = (inputs[subjectId] || '').trim();
+    if (!text) return;
+    const cur = supplies[subjectId] || [];
+    if (cur.length >= 10) return;
+    onUpdateSupplies({ ...supplies, [subjectId]: [...cur, { id: uid(), name: text, checkedDate: null }] });
+    setInputs({ ...inputs, [subjectId]: '' });
+  }
+
+  function removeSupply(subjectId, supplyId) {
+    onUpdateSupplies({
+      ...supplies,
+      [subjectId]: (supplies[subjectId] || []).filter(s => s.id !== supplyId)
+    });
+  }
+
+  function toggleSupply(subjectId, supplyId) {
+    const cur = supplies[subjectId] || [];
+    onUpdateSupplies({
+      ...supplies,
+      [subjectId]: cur.map(s => s.id === supplyId
+        ? { ...s, checkedDate: s.checkedDate === today ? null : today }
+        : s
+      )
+    });
+  }
+
+  return (
+    <div>
+      <div className="app-header">
+        <div className="app-header h2" style={{fontWeight:700,fontSize:'1.1rem'}}>준비물</div>
+      </div>
+      <div className="main-content" style={{paddingTop:8}}>
+        <div className="supply-page">
+          <div className="supply-day-tabs">
+            {DAYS.map((d, i) => (
+              <button
+                key={i}
+                className={`supply-day-tab ${i === activeDay ? 'active' : ''}`}
+                onClick={() => setActiveDay(i)}
+              >{d}요일</button>
+            ))}
+          </div>
+
+          {daySubjects.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-state-icon">🎒</div>
+              <div className="empty-state-text">이 날 등록된 과목이 없어요.<br/>시간표 편집에서 과목을 추가해 보세요!</div>
+            </div>
+          )}
+
+          {daySubjects.map(subj => {
+            const items = supplies[subj.id] || [];
+            const atLimit = items.length >= 10;
+            return (
+              <div key={subj.id} className="supply-subject-group">
+                <div className="supply-subject-header">
+                  <div className="supply-subject-color" style={{background: subj.color}}></div>
+                  <span className="supply-subject-name">{subj.name}</span>
+                  <span style={{fontSize:'0.75rem',color:'#bbb',marginLeft:'auto'}}>{items.length}/10</span>
+                </div>
+                {items.map(s => {
+                  const checked = s.checkedDate === today;
+                  return (
+                    <div key={s.id} className="supply-item">
+                      <div
+                        className={`supply-check ${checked ? 'checked' : ''}`}
+                        onClick={() => toggleSupply(subj.id, s.id)}
+                      >{checked && '✓'}</div>
+                      <span className={`supply-text ${checked ? 'checked' : ''}`}>{s.name}</span>
+                      <button className="supply-delete-btn" onClick={() => removeSupply(subj.id, s.id)}>✕</button>
+                    </div>
+                  );
+                })}
+                {!atLimit && (
+                  <div className="supply-add-row">
+                    <input
+                      className="supply-input"
+                      placeholder="준비물 추가…"
+                      value={inputs[subj.id] || ''}
+                      onChange={e => setInputs({ ...inputs, [subj.id]: e.target.value })}
+                      onKeyDown={e => e.key === 'Enter' && addSupply(subj.id)}
+                    />
+                    <button className="supply-add-btn" onClick={() => addSupply(subj.id)}>추가</button>
+                  </div>
+                )}
+                {atLimit && <div style={{fontSize:'0.78rem',color:'#ff9f43',padding:'4px 0'}}>최대 10개 등록 완료</div>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Settings Screen ────────────────────────────────────────
+function SettingsScreen({ profile, settings, onUpdateSettings, onDeleteProfile }) {
+  return (
+    <div>
+      <div className="app-header">
+        <div className="app-header h2" style={{fontWeight:700,fontSize:'1.1rem'}}>설정</div>
+      </div>
+      <div className="main-content">
+        <div className="profile-badge">
+          <div className="profile-icon">🎒</div>
+          <div>
+            <div className="profile-info-name">{profile.grade}학년 {profile.classNo}반</div>
+            <div className="profile-info-sub">내 시간표 프로필</div>
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <div className="settings-card">
+            <div className="settings-row">
+              <div>
+                <div className="settings-row-label">수업 시작 알림</div>
+                <div className="settings-row-sub">수업 몇 분 전에 알림을 받을지 선택</div>
+              </div>
+              <select
+                className="settings-select"
+                value={settings.classAlertMinutes}
+                onChange={e => onUpdateSettings({ ...settings, classAlertMinutes: +e.target.value })}
+              >
+                <option value={0}>알림 없음</option>
+                <option value={5}>5분 전</option>
+                <option value={10}>10분 전</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="settings-card">
+            <div className="settings-row" style={{cursor:'default'}}>
+              <div>
+                <div className="settings-row-label">앱 정보</div>
+                <div className="settings-row-sub">초등학생용 시간표 앱 v1.0</div>
+              </div>
+              <span style={{fontSize:'0.8rem',color:'#ccc'}}>📅</span>
+            </div>
+          </div>
+        </div>
+
+        <button className="btn-danger" onClick={onDeleteProfile}>
+          🗑️ 프로필 삭제
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Bottom Nav ─────────────────────────────────────────────
+function BottomNav({ current, onChange }) {
+  const items = [
+    { id: 'home',      icon: '🏠', label: '홈' },
+    { id: 'edit',      icon: '✏️', label: '편집' },
+    { id: 'supplies',  icon: '🎒', label: '준비물' },
+    { id: 'settings',  icon: '⚙️', label: '설정' },
+  ];
+  return (
+    <nav className="bottom-nav">
+      {items.map(it => (
+        <button
+          key={it.id}
+          className={`nav-item ${current === it.id ? 'active' : ''}`}
+          onClick={() => onChange(it.id)}
+        >
+          <span className="nav-icon">{it.icon}</span>
+          {it.label}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+// ── Confirm Dialog ─────────────────────────────────────────
+function ConfirmDialog({ title, message, onConfirm, onCancel }) {
+  return (
+    <div className="dialog-overlay">
+      <div className="dialog">
+        <h3>{title}</h3>
+        <p>{message}</p>
+        <div className="dialog-buttons">
+          <button className="dialog-btn cancel" onClick={onCancel}>취소</button>
+          <button className="dialog-btn confirm" onClick={onConfirm}>확인</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Mount ──────────────────────────────────────────────────
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
