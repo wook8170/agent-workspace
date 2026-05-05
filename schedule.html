@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>📅 내 시간표</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --color-primary: #5F27CD;
+      --color-accent:  #48DBFB;
+      --color-bg:      #F4F6FF;
+      --color-card:    rgba(255,255,255,0.95);
+      --color-border:  #E0E7FF;
+      --color-text:    #1a1a2e;
+      --color-muted:   #888;
+      --radius-card:   24px;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(150deg, #e0e7ff 0%, #f4f6ff 60%, #fce7f3 100%);
+      font-family: 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      color: var(--color-text);
+    }
+
+    /* ── App shell ── */
+    #app { max-width: 480px; margin: 0 auto; padding: 16px 12px 40px; }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .header-title {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: var(--color-primary);
+    }
+    .profile-badge {
+      background: var(--color-primary);
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+    }
+
+    /* ── Onboarding screen ── */
+    .onboarding {
+      background: var(--color-card);
+      border-radius: var(--radius-card);
+      padding: 32px 24px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(95,39,205,0.12);
+    }
+    .onboarding-emoji { font-size: 3.5rem; margin-bottom: 12px; }
+    .onboarding h2 { font-size: 1.4rem; font-weight: 900; margin-bottom: 8px; color: var(--color-primary); }
+    .onboarding p  { font-size: 0.95rem; color: var(--color-muted); margin-bottom: 24px; }
+
+    .onboarding-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .select-group {
+      flex: 1;
+      text-align: left;
+    }
+    .select-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--color-muted);
+      margin-bottom: 6px;
+    }
+    .select-group select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 2px solid var(--color-border);
+      font-size: 1rem;
+      font-weight: 700;
+      background: #fff;
+      color: var(--color-text);
+      appearance: none;
+      cursor: pointer;
+      min-height: 48px;
+    }
+    .select-group select:focus { outline: none; border-color: var(--color-primary); }
+
+    .btn-primary {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 18px;
+      background: var(--color-primary);
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 800;
+      cursor: pointer;
+      min-height: 56px;
+      transition: transform 0.1s, box-shadow 0.1s;
+      box-shadow: 0 4px 18px rgba(95,39,205,0.35);
+    }
+    .btn-primary:hover  { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(95,39,205,0.4); }
+    .btn-primary:active { transform: translateY(0); }
+
+    /* ── Schedule grid ── */
+    .grid-card {
+      background: var(--color-card);
+      border-radius: var(--radius-card);
+      padding: 16px 12px;
+      box-shadow: 0 8px 32px rgba(95,39,205,0.10);
+      overflow-x: auto;
+    }
+
+    .schedule-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 4px;
+      min-width: 300px;
+    }
+
+    .schedule-table th {
+      text-align: center;
+      font-size: 0.82rem;
+      font-weight: 800;
+      padding: 6px 4px;
+      color: var(--color-muted);
+    }
+    .schedule-table th.today-col {
+      color: var(--color-primary);
+      background: #EDE9FE;
+      border-radius: 10px;
+    }
+    .period-th {
+      font-size: 0.75rem;
+      color: #bbb;
+      font-weight: 700;
+      padding: 4px 2px;
+      text-align: center;
+    }
+
+    /* ── Subject cell ── */
+    .subject-cell {
+      position: relative;
+      border-radius: 12px;
+      padding: 0;
+      height: 52px;
+      cursor: pointer;
+      transition: transform 0.12s, box-shadow 0.12s;
+      overflow: hidden;
+    }
+    .subject-cell:hover { transform: scale(1.04); box-shadow: 0 4px 14px rgba(0,0,0,0.14); }
+    .subject-cell:active { transform: scale(0.97); }
+
+    .subject-cell.empty {
+      background: #f0f0f8;
+      border: 2px dashed #d0d0e0;
+    }
+    .subject-cell.empty:hover { background: #e8e8f5; }
+
+    .cell-inner {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+    }
+    .cell-name {
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: #fff;
+      text-align: center;
+      line-height: 1.2;
+      word-break: keep-all;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.18);
+    }
+    .cell-name.dark { color: #1a1a2e; text-shadow: none; }
+
+    .empty-plus {
+      color: #b0b0c8;
+      font-size: 1.2rem;
+      font-weight: 300;
+    }
+
+    /* Swap arrows */
+    .swap-btn {
+      position: absolute;
+      right: 2px;
+      width: 16px;
+      height: 16px;
+      background: rgba(255,255,255,0.7);
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6rem;
+      color: #555;
+      padding: 0;
+      line-height: 1;
+    }
+    .swap-btn.swap-up   { top: 2px; }
+    .swap-btn.swap-down { bottom: 2px; }
+    .subject-cell:not(.empty):hover .swap-btn { display: flex; }
+
+    /* ── Modal overlay ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 20, 40, 0.55);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 100;
+      padding: 0 0 0 0;
+      animation: overlayIn 0.18s ease-out;
+    }
+    .modal-overlay.hidden { display: none; }
+
+    @keyframes overlayIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    .modal {
+      background: #fff;
+      border-radius: 28px 28px 0 0;
+      padding: 28px 24px 36px;
+      width: 100%;
+      max-width: 480px;
+      animation: sheetUp 0.22s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    @keyframes sheetUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 900;
+      color: var(--color-primary);
+    }
+    .modal-close {
+      width: 44px;
+      height: 44px;
+      border: none;
+      background: #f0f0f8;
+      border-radius: 50%;
+      font-size: 1.3rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .input-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--color-muted);
+      margin-bottom: 8px;
+      display: block;
+    }
+    .subject-input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 2px solid var(--color-border);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--color-text);
+      margin-bottom: 20px;
+      min-height: 52px;
+    }
+    .subject-input:focus { outline: none; border-color: var(--color-primary); }
+    .char-count {
+      text-align: right;
+      font-size: 0.78rem;
+      color: var(--color-muted);
+      margin-top: -14px;
+      margin-bottom: 16px;
+    }
+    .char-count.over { color: #ef4444; }
+
+    /* ── Color palette ── */
+    .palette-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--color-muted);
+      margin-bottom: 10px;
+      display: block;
+    }
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .palette-swatch {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 10px;
+      border: 3px solid transparent;
+      cursor: pointer;
+      transition: transform 0.1s, border-color 0.1s;
+      min-height: 44px;
+    }
+    .palette-swatch:hover   { transform: scale(1.1); }
+    .palette-swatch.selected {
+      border-color: var(--color-text);
+      transform: scale(1.12);
+      box-shadow: 0 0 0 2px #fff inset;
+    }
+
+    /* ── Modal actions ── */
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-clear {
+      flex: 1;
+      padding: 14px;
+      border: 2px solid #ef4444;
+      border-radius: 16px;
+      background: #fff;
+      color: #ef4444;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      min-height: 52px;
+      transition: background 0.1s;
+    }
+    .btn-clear:hover { background: #fff0f0; }
+    .btn-save {
+      flex: 2;
+      padding: 14px;
+      border: none;
+      border-radius: 16px;
+      background: var(--color-primary);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      min-height: 52px;
+      box-shadow: 0 4px 14px rgba(95,39,205,0.3);
+      transition: transform 0.1s;
+    }
+    .btn-save:hover  { transform: translateY(-1px); }
+    .btn-save:active { transform: translateY(0); }
+    .btn-save:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%) translateY(0);
+      background: #1a1a2e;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      z-index: 200;
+      pointer-events: none;
+      animation: toastIn 0.2s ease-out, toastOut 0.3s ease-in 1.5s forwards;
+    }
+    @keyframes toastIn  { from { opacity:0; transform:translateX(-50%) translateY(12px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+    @keyframes toastOut { to   { opacity:0; transform:translateX(-50%) translateY(12px); } }
+
+    /* ── Reset button (small) ── */
+    .reset-link {
+      display: block;
+      text-align: center;
+      margin-top: 16px;
+      font-size: 0.78rem;
+      color: var(--color-muted);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+'use strict';
+
+/* ── Constants ── */
+const DAYS    = ['월', '화', '수', '목', '금'];
+const PERIODS = [1, 2, 3, 4, 5, 6, 7];
+const STORAGE_KEY = 'pomo_schedule_v1';
+
+const PALETTE = [
+  { hex: '#FF6B6B', label: '빨강' },
+  { hex: '#FF9F43', label: '주황' },
+  { hex: '#FECA57', label: '노랑' },
+  { hex: '#1DD1A1', label: '초록' },
+  { hex: '#48DBFB', label: '하늘' },
+  { hex: '#54A0FF', label: '파랑' },
+  { hex: '#5F27CD', label: '보라' },
+  { hex: '#FF78C4', label: '분홍' },
+  { hex: '#EE5A24', label: '주황2' },
+  { hex: '#009432', label: '초록2' },
+  { hex: '#8395A7', label: '회색' },
+  { hex: '#C8D6E5', label: '연회색' },
+];
+
+/* ── Helpers: text contrast ── */
+function isDark(hex) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return (r*299 + g*587 + b*114) / 1000 < 128;
+}
+
+/* ── State ── */
+let state = loadState();
+let editTarget = null; // { dayIdx, periodIdx }
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (_) {}
+  return {
+    profile: null,
+    // slots[dayIdx][periodIdx] = { name, color } | null  (0-indexed)
+    slots: Array.from({ length: 5 }, () => Array(7).fill(null))
+  };
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (_) {}
+}
+
+/* ── Today index (0=Mon … 4=Fri) ── */
+function todayDayIdx() {
+  const d = new Date().getDay(); // 0=Sun, 1=Mon … 6=Sat
+  return (d >= 1 && d <= 5) ? d - 1 : -1;
+}
+
+/* ── Render ── */
+function render() {
+  const app = document.getElementById('app');
+  if (!state.profile) {
+    app.innerHTML = renderOnboarding();
+  } else {
+    app.innerHTML = renderSchedule();
+    renderModal();
+  }
+  attachEvents();
+}
+
+function renderOnboarding() {
+  const gradeOpts = [1,2,3,4,5,6].map(g =>
+    `<option value="${g}">${g}학년</option>`).join('');
+  const classOpts = Array.from({length:15},(_,i)=>i+1).map(c =>
+    `<option value="${c}">${c}반</option>`).join('');
+  return `
+    <div class="onboarding">
+      <div class="onboarding-emoji">📅</div>
+      <h2>내 시간표 만들기</h2>
+      <p>학년과 반을 선택하고 시간표를 시작해요!</p>
+      <div class="onboarding-row">
+        <div class="select-group">
+          <label for="sel-grade">학년</label>
+          <select id="sel-grade">${gradeOpts}</select>
+        </div>
+        <div class="select-group">
+          <label for="sel-class">반</label>
+          <select id="sel-class">${classOpts}</select>
+        </div>
+      </div>
+      <button class="btn-primary" id="btn-start">시작하기 →</button>
+    </div>`;
+}
+
+function renderSchedule() {
+  const today = todayDayIdx();
+  const { profile } = state;
+
+  let headerRow = `<th class="period-th"></th>`;
+  DAYS.forEach((d, i) => {
+    const cls = i === today ? 'today-col' : '';
+    headerRow += `<th class="${cls}">${d}${i === today ? ' 📍' : ''}</th>`;
+  });
+
+  let bodyRows = '';
+  PERIODS.forEach((p, pIdx) => {
+    let row = `<th class="period-th">${p}교시</th>`;
+    DAYS.forEach((_, dIdx) => {
+      const slot = state.slots[dIdx][pIdx];
+      if (slot) {
+        const dark = isDark(slot.color);
+        const canUp   = pIdx > 0 && state.slots[dIdx][pIdx-1] !== null;
+        const canDown = pIdx < 6 && state.slots[dIdx][pIdx+1] !== null;
+        row += `<td>
+          <div class="subject-cell" data-day="${dIdx}" data-period="${pIdx}"
+               style="background:${slot.color}">
+            <div class="cell-inner">
+              <span class="cell-name${dark ? '' : ' dark'}">${escHtml(slot.name)}</span>
+            </div>
+            ${canUp   ? `<button class="swap-btn swap-up"   data-day="${dIdx}" data-period="${pIdx}" data-dir="up"   title="위로">▲</button>` : ''}
+            ${canDown ? `<button class="swap-btn swap-down" data-day="${dIdx}" data-period="${pIdx}" data-dir="down" title="아래로">▼</button>` : ''}
+          </div>
+        </td>`;
+      } else {
+        row += `<td>
+          <div class="subject-cell empty" data-day="${dIdx}" data-period="${pIdx}">
+            <div class="cell-inner"><span class="empty-plus">+</span></div>
+          </div>
+        </td>`;
+      }
+    });
+    bodyRows += `<tr>${row}</tr>`;
+  });
+
+  return `
+    <div class="header">
+      <div class="header-title">📅 내 시간표</div>
+      <div class="profile-badge" id="btn-profile">${profile.grade}학년 ${profile.classNo}반</div>
+    </div>
+    <div class="grid-card">
+      <table class="schedule-table">
+        <thead><tr>${headerRow}</tr></thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+    </div>
+    <div id="modal-root"></div>
+    <a class="reset-link" id="btn-reset">처음부터 다시 설정하기</a>`;
+}
+
+/* ── Modal ── */
+function renderModal() {
+  const root = document.getElementById('modal-root');
+  if (!root) return;
+  if (!editTarget) {
+    root.innerHTML = '';
+    return;
+  }
+  const { dayIdx, periodIdx } = editTarget;
+  const slot = state.slots[dayIdx][periodIdx];
+  const name    = slot ? slot.name  : '';
+  const color   = slot ? slot.color : PALETTE[5].hex;
+  const dayName = DAYS[dayIdx];
+  const period  = PERIODS[periodIdx];
+
+  const swatches = PALETTE.map(p => `
+    <div class="palette-swatch${p.hex === color ? ' selected' : ''}"
+         style="background:${p.hex}" data-color="${p.hex}"
+         title="${p.label}" tabindex="0" role="button" aria-label="${p.label}"></div>
+  `).join('');
+
+  root.innerHTML = `
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal">
+        <div class="modal-header">
+          <span class="modal-title">${dayName}요일 ${period}교시 수정</span>
+          <button class="modal-close" id="btn-modal-close" aria-label="닫기">✕</button>
+        </div>
+        <label class="input-label" for="input-name">과목명</label>
+        <input class="subject-input" id="input-name" type="text"
+               maxlength="10" placeholder="과목명 입력 (최대 10자)"
+               value="${escHtml(name)}" autocomplete="off" />
+        <div class="char-count" id="char-count">${name.length}/10</div>
+        <span class="palette-label">색상 선택</span>
+        <div class="palette" id="palette">${swatches}</div>
+        <div class="modal-actions">
+          <button class="btn-clear" id="btn-clear">비우기</button>
+          <button class="btn-save" id="btn-save">저장</button>
+        </div>
+      </div>
+    </div>`;
+
+  attachModalEvents(color);
+}
+
+let selectedColor = PALETTE[5].hex;
+
+function attachModalEvents(initColor) {
+  selectedColor = initColor;
+
+  const input     = document.getElementById('input-name');
+  const charCount = document.getElementById('char-count');
+  const palette   = document.getElementById('palette');
+  const btnSave   = document.getElementById('btn-save');
+
+  if (input) {
+    input.focus();
+    input.addEventListener('input', () => {
+      const len = [...input.value].length;
+      charCount.textContent = `${len}/10`;
+      charCount.classList.toggle('over', len > 10);
+      btnSave.disabled = len === 0 || len > 10;
+    });
+    btnSave.disabled = input.value.trim().length === 0;
+  }
+
+  if (palette) {
+    palette.addEventListener('click', e => {
+      const sw = e.target.closest('.palette-swatch');
+      if (!sw) return;
+      selectedColor = sw.dataset.color;
+      palette.querySelectorAll('.palette-swatch').forEach(s =>
+        s.classList.toggle('selected', s.dataset.color === selectedColor));
+    });
+  }
+
+  document.getElementById('btn-modal-close')?.addEventListener('click', closeModal);
+  document.getElementById('modal-overlay')?.addEventListener('click', e => {
+    if (e.target.id === 'modal-overlay') closeModal();
+  });
+
+  document.getElementById('btn-clear')?.addEventListener('click', () => {
+    const { dayIdx, periodIdx } = editTarget;
+    state.slots[dayIdx][periodIdx] = null;
+    saveState();
+    closeModal();
+    showToast('교시를 비웠습니다');
+    render();
+  });
+
+  document.getElementById('btn-save')?.addEventListener('click', () => {
+    const name = document.getElementById('input-name').value.trim();
+    if (!name) return;
+    const { dayIdx, periodIdx } = editTarget;
+    state.slots[dayIdx][periodIdx] = { name, color: selectedColor };
+    saveState();
+    closeModal();
+    showToast('저장했습니다 ✓');
+    render();
+  });
+}
+
+function closeModal() {
+  editTarget = null;
+  const root = document.getElementById('modal-root');
+  if (root) root.innerHTML = '';
+}
+
+/* ── Event attachment ── */
+function attachEvents() {
+  // Onboarding start
+  document.getElementById('btn-start')?.addEventListener('click', () => {
+    const grade   = parseInt(document.getElementById('sel-grade').value, 10);
+    const classNo = parseInt(document.getElementById('sel-class').value, 10);
+    state.profile = { grade, classNo };
+    saveState();
+    render();
+  });
+
+  // Cell tap → open edit modal
+  document.querySelectorAll('.subject-cell').forEach(cell => {
+    cell.addEventListener('click', e => {
+      if (e.target.closest('.swap-btn')) return;
+      const dayIdx    = parseInt(cell.dataset.day,    10);
+      const periodIdx = parseInt(cell.dataset.period, 10);
+      editTarget = { dayIdx, periodIdx };
+      renderModal();
+      attachModalEvents(
+        state.slots[dayIdx][periodIdx]?.color ?? PALETTE[5].hex
+      );
+    });
+  });
+
+  // Swap buttons (period order)
+  document.querySelectorAll('.swap-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const dIdx = parseInt(btn.dataset.day,    10);
+      const pIdx = parseInt(btn.dataset.period, 10);
+      const dir  = btn.dataset.dir;
+      const targetPIdx = dir === 'up' ? pIdx - 1 : pIdx + 1;
+      if (targetPIdx < 0 || targetPIdx > 6) return;
+      const tmp = state.slots[dIdx][pIdx];
+      state.slots[dIdx][pIdx] = state.slots[dIdx][targetPIdx];
+      state.slots[dIdx][targetPIdx] = tmp;
+      saveState();
+      render();
+    });
+  });
+
+  // Profile badge → re-onboard
+  document.getElementById('btn-profile')?.addEventListener('click', () => {
+    if (confirm('프로필을 변경하시겠습니까?\n(시간표 데이터는 유지됩니다)')) {
+      state.profile = null;
+      saveState();
+      render();
+    }
+  });
+
+  // Reset
+  document.getElementById('btn-reset')?.addEventListener('click', () => {
+    if (confirm('모든 시간표 데이터를 삭제하고 처음부터 시작할까요?')) {
+      localStorage.removeItem(STORAGE_KEY);
+      state = loadState();
+      render();
+    }
+  });
+}
+
+/* ── Toast ── */
+function showToast(msg) {
+  const old = document.querySelector('.toast');
+  if (old) old.remove();
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2000);
+}
+
+/* ── Escape HTML ── */
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Boot ── */
+render();
+</script>
+</body>
+</html>
