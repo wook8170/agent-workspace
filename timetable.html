@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>📅 오늘 시간표</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      padding: 20px 16px 40px;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', 'Segoe UI', sans-serif;
+      background: linear-gradient(160deg, #e8f4fd 0%, #dbeafe 50%, #ede9fe 100%);
+    }
+
+    .app {
+      width: min(100%, 420px);
+      margin: 0 auto;
+    }
+
+    .app-title {
+      font-size: 1.55rem;
+      font-weight: 900;
+      color: #1e40af;
+      text-align: center;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+
+    /* ── Summary Card ── */
+    .summary-card {
+      background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+      border-radius: 28px;
+      padding: 22px 24px 20px;
+      color: #fff;
+      box-shadow: 0 10px 36px rgba(59, 130, 246, 0.38);
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .summary-card::before {
+      content: '';
+      position: absolute;
+      top: -30px; right: -30px;
+      width: 130px; height: 130px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.10);
+    }
+
+    .summary-card.weekend {
+      background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+      box-shadow: 0 10px 36px rgba(6,182,212,0.35);
+    }
+
+    .summary-date {
+      font-size: 1.05rem;
+      font-weight: 700;
+      opacity: 0.9;
+      margin-bottom: 14px;
+      letter-spacing: 0.01em;
+    }
+
+    /* Stats row */
+    .summary-stats {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 16px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 18px;
+      padding: 12px 0;
+    }
+
+    .stat-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .stat-num {
+      font-size: 2.4rem;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+
+    .stat-num.remaining {
+      color: #fde68a;
+    }
+
+    .stat-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      opacity: 0.85;
+      letter-spacing: 0.02em;
+    }
+
+    .stat-divider {
+      width: 1.5px;
+      height: 42px;
+      background: rgba(255,255,255,0.3);
+    }
+
+    /* Next class */
+    .next-class {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 14px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      border-left: 5px solid #fff;
+    }
+
+    .next-class-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      opacity: 0.85;
+      white-space: nowrap;
+    }
+
+    .next-class-name {
+      font-size: 1.35rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    /* Countdown */
+    .countdown-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .countdown-badge {
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .countdown-badge.during   { background: #fef3c7; color: #92400e; }
+    .countdown-badge.break    { background: #d1fae5; color: #065f46; }
+    .countdown-badge.lunch    { background: #fce7f3; color: #9d174d; }
+    .countdown-badge.before   { background: #e0e7ff; color: #3730a3; }
+    .countdown-badge.done     { background: #d1fae5; color: #065f46; }
+    .countdown-badge.no_class { background: #f3f4f6; color: #374151; }
+
+    .countdown-text {
+      font-size: 1rem;
+      font-weight: 700;
+      opacity: 0.95;
+    }
+
+    .countdown-num {
+      font-size: 1.2rem;
+      font-weight: 900;
+    }
+
+    /* Weekend & done messages */
+    .summary-rest-msg {
+      font-size: 1.6rem;
+      font-weight: 900;
+      text-align: center;
+      padding: 10px 0;
+    }
+
+    /* ── Timetable grid (weekly) ── */
+    .section-title {
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: #4b5563;
+      margin-bottom: 10px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .timetable-wrap {
+      background: rgba(255,255,255,0.85);
+      border-radius: 22px;
+      padding: 16px 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+      overflow-x: auto;
+    }
+
+    .timetable-grid {
+      display: grid;
+      grid-template-columns: 28px repeat(5, 1fr);
+      gap: 4px;
+      min-width: 300px;
+    }
+
+    .grid-header {
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: #6b7280;
+      text-align: center;
+      padding: 4px 2px;
+    }
+
+    .grid-header.today-col {
+      background: #dbeafe;
+      border-radius: 8px;
+      color: #1d4ed8;
+    }
+
+    .grid-period {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #9ca3af;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .grid-cell {
+      border-radius: 10px;
+      padding: 6px 3px;
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #fff;
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.12s;
+    }
+
+    .grid-cell:active { transform: scale(0.94); }
+
+    .grid-cell.empty {
+      background: #f3f4f6;
+      color: #d1d5db;
+    }
+
+    .grid-cell.today-col {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+
+    .grid-cell.current-period {
+      animation: pulseBorder 1.5s ease-in-out infinite;
+      outline: 2.5px solid #fff;
+      outline-offset: -2.5px;
+    }
+
+    @keyframes pulseBorder {
+      0%, 100% { box-shadow: 0 2px 8px rgba(0,0,0,0.12), 0 0 0 0 rgba(255,255,255,0.6); }
+      50%       { box-shadow: 0 2px 8px rgba(0,0,0,0.12), 0 0 0 4px rgba(255,255,255,0.25); }
+    }
+
+    .no-schedule-msg {
+      text-align: center;
+      color: #9ca3af;
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 16px 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // ── Korean elementary school class schedule ──────────────────────────────
+    // Standard schedule (minutes from midnight)
+    const CLASS_TIMES = [
+      { period: 1, start: 9*60+0,   end: 9*60+40  },  // 09:00–09:40
+      { period: 2, start: 9*60+50,  end: 10*60+30 },  // 09:50–10:30
+      { period: 3, start: 10*60+40, end: 11*60+20 },  // 10:40–11:20
+      { period: 4, start: 11*60+30, end: 12*60+10 },  // 11:30–12:10
+      { period: 5, start: 13*60+0,  end: 13*60+40 },  // 13:00–13:40
+      { period: 6, start: 13*60+50, end: 14*60+30 },  // 13:50–14:30
+      { period: 7, start: 14*60+40, end: 15*60+20 },  // 14:40–15:20
+    ];
+
+    const LUNCH_START = 12*60+10;  // 12:10
+    const LUNCH_END   = 13*60+0;   // 13:00
+
+    const DAYS = ['월','화','수','목','금'];
+
+    // ── Default demo timetable ───────────────────────────────────────────────
+    const SUBJECT_COLORS = {
+      국어: '#ef4444', 수학: '#3b82f6', 영어: '#10b981',
+      과학: '#8b5cf6', 체육: '#f97316', 음악: '#ec4899',
+      사회: '#06b6d4', 미술: '#f59e0b', 도덕: '#6366f1',
+    };
+
+    const DEFAULT_SCHEDULE = {
+      월: ['국어','수학','영어','과학', null, null, null],
+      화: ['수학','국어','체육','음악','미술', null, null],
+      수: ['영어','사회','국어','수학','도덕', null, null],
+      목: ['과학','체육','수학','국어','영어','음악', null],
+      금: ['국어','미술','사회','수학','체육', null, null],
+    };
+
+    const STORAGE_KEY = 'timetable_v1';
+
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch { return null; }
+    }
+
+    function getDefaultData() {
+      return { schedule: DEFAULT_SCHEDULE, subjectColors: SUBJECT_COLORS, grade: 3, classNum: 2 };
+    }
+
+    // ── Time helpers ─────────────────────────────────────────────────────────
+    function nowMin() {
+      const d = new Date();
+      return d.getHours() * 60 + d.getMinutes();
+    }
+
+    function nowSec() {
+      const d = new Date();
+      return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
+    }
+
+    function getDayKey() {
+      const day = new Date().getDay();
+      if (day === 0 || day === 6) return null;
+      return DAYS[day - 1];
+    }
+
+    function fmtDate() {
+      const d = new Date();
+      const dayNames = ['일','월','화','수','목','금','토'];
+      return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${dayNames[d.getDay()]})`;
+    }
+
+    function fmtCountdown(totalSec) {
+      const m = Math.floor(totalSec / 60);
+      const s = totalSec % 60;
+      if (m === 0) return `${s}초`;
+      if (s === 0) return `${m}분`;
+      return `${m}분 ${s}초`;
+    }
+
+    // ── Summary computation ───────────────────────────────────────────────────
+    function calcSummary(schedule, colors) {
+      const dayKey = getDayKey();
+
+      if (!dayKey) return { isWeekend: true };
+
+      const todaySlots  = (schedule[dayKey] || []).slice(0, 7);
+      const todayClasses = CLASS_TIMES
+        .map((ct, i) => ({ ...ct, subject: todaySlots[i] || null }))
+        .filter(c => c.subject !== null);
+
+      const totalCount = todayClasses.length;
+      const now = nowMin();
+      const nowS = nowSec();
+
+      const remaining = todayClasses.filter(c => c.end > now);
+      const remainingCount = remaining.length;
+
+      // Determine status
+      let status = 'before';
+      let nextSubject = null;
+      let nextColor = null;
+      let countdownSec = null;
+
+      const lastClass = todayClasses[todayClasses.length - 1];
+
+      if (totalCount === 0) {
+        status = 'no_class';
+      } else if (lastClass && now >= lastClass.end) {
+        status = 'done';
+      } else {
+        // Check each slot
+        for (let i = 0; i < todayClasses.length; i++) {
+          const cls = todayClasses[i];
+          const clsStartSec = cls.start * 60;
+          const clsEndSec   = cls.end   * 60;
+
+          if (nowS >= clsStartSec && nowS < clsEndSec) {
+            // Currently in this class
+            status = 'during';
+            nextSubject = cls.subject;
+            nextColor   = colors[cls.subject] || '#6366f1';
+            countdownSec = clsEndSec - nowS;
+            break;
+          }
+
+          const prevEnd = i > 0 ? todayClasses[i-1].end * 60 : null;
+          if (prevEnd !== null && nowS >= prevEnd && nowS < clsStartSec) {
+            // In gap before this class
+            if (now >= LUNCH_START && now < LUNCH_END) {
+              status = 'lunch';
+            } else {
+              status = 'break';
+            }
+            nextSubject  = cls.subject;
+            nextColor    = colors[cls.subject] || '#6366f1';
+            countdownSec = clsStartSec - nowS;
+            break;
+          }
+
+          if (i === 0 && nowS < clsStartSec) {
+            status = 'before';
+            nextSubject  = cls.subject;
+            nextColor    = colors[cls.subject] || '#6366f1';
+            countdownSec = clsStartSec - nowS;
+            break;
+          }
+        }
+      }
+
+      return {
+        isWeekend: false,
+        dayKey,
+        dateStr: fmtDate(),
+        totalCount,
+        remainingCount,
+        nextSubject,
+        nextColor,
+        status,
+        countdownSec,
+      };
+    }
+
+    // ── Badge label ──────────────────────────────────────────────────────────
+    const STATUS_BADGE = {
+      during:   '수업 중',
+      break:    '쉬는 시간',
+      lunch:    '점심시간',
+      before:   '수업 전',
+      done:     '수업 종료',
+      no_class: '수업 없음',
+    };
+
+    function getCountdownMsg(status, nextSubject, countdownSec) {
+      const t = countdownSec !== null ? fmtCountdown(countdownSec) : '';
+      if (status === 'done')     return '오늘 수업이 모두 끝났어요! 🎊';
+      if (status === 'no_class') return '오늘은 수업이 없어요 😊';
+      if (status === 'during')   return `수업 끝까지 ${t} 남았어요`;
+      if (status === 'lunch')    return `점심시간 🍱 — ${nextSubject} 수업까지 ${t}`;
+      if (status === 'break')    return `쉬는 시간 ⏰ — ${nextSubject} 시작까지 ${t}`;
+      return `${nextSubject} 시작까지 ${t}`;
+    }
+
+    // ── SummaryCard component ────────────────────────────────────────────────
+    function SummaryCard({ schedule, colors }) {
+      const [summary, setSummary] = useState(() => calcSummary(schedule, colors));
+
+      useEffect(() => {
+        const id = setInterval(() => setSummary(calcSummary(schedule, colors)), 1000);
+        return () => clearInterval(id);
+      }, [schedule, colors]);
+
+      if (summary.isWeekend) {
+        return (
+          <div className="summary-card weekend">
+            <div className="summary-date">{fmtDate()}</div>
+            <div className="summary-rest-msg">주말이에요! 푹 쉬어요 🎉</div>
+          </div>
+        );
+      }
+
+      const { dateStr, totalCount, remainingCount, nextSubject, nextColor, status, countdownSec } = summary;
+
+      return (
+        <div className="summary-card" role="region" aria-label="오늘의 수업 요약">
+          <div className="summary-date">{dateStr}</div>
+
+          <div className="summary-stats" aria-label={`전체 ${totalCount}교시, 남은 교시 ${remainingCount}`}>
+            <div className="stat-item">
+              <span className="stat-num">{totalCount}</span>
+              <span className="stat-label">전체 교시</span>
+            </div>
+            <div className="stat-divider" aria-hidden="true" />
+            <div className="stat-item">
+              <span className="stat-num remaining">{remainingCount}</span>
+              <span className="stat-label">남은 교시</span>
+            </div>
+          </div>
+
+          {nextSubject && (
+            <div className="next-class" style={{ borderLeftColor: nextColor }}>
+              <span className="next-class-label">다음 수업</span>
+              <span className="next-class-name">{nextSubject}</span>
+            </div>
+          )}
+
+          <div className="countdown-row">
+            <span className={`countdown-badge ${status}`}>
+              {STATUS_BADGE[status] ?? status}
+            </span>
+            <span className="countdown-text">
+              {getCountdownMsg(status, nextSubject, countdownSec)}
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    // ── WeeklyGrid component ─────────────────────────────────────────────────
+    function WeeklyGrid({ schedule, colors }) {
+      const dayKey   = getDayKey();
+      const todayIdx = dayKey ? DAYS.indexOf(dayKey) : -1;
+      const nowM     = nowMin();
+
+      function getCurrentPeriod() {
+        if (todayIdx < 0) return -1;
+        for (const ct of CLASS_TIMES) {
+          if (nowM >= ct.start && nowM < ct.end) return ct.period;
+        }
+        return -1;
+      }
+
+      const currentPeriod = getCurrentPeriod();
+
+      return (
+        <div>
+          <div className="section-title">📋 이번 주 시간표</div>
+          <div className="timetable-wrap">
+            <div className="timetable-grid">
+              {/* Header row */}
+              <div className="grid-header" />
+              {DAYS.map((d, i) => (
+                <div
+                  key={d}
+                  className={`grid-header${i === todayIdx ? ' today-col' : ''}`}
+                >
+                  {d}
+                  {i === todayIdx ? ' ★' : ''}
+                </div>
+              ))}
+
+              {/* Period rows */}
+              {CLASS_TIMES.map((ct) => (
+                <React.Fragment key={ct.period}>
+                  <div className="grid-period">{ct.period}</div>
+                  {DAYS.map((d, di) => {
+                    const subj = (schedule[d] || [])[ct.period - 1] || null;
+                    const bg   = subj ? (colors[subj] || '#94a3b8') : null;
+                    const isToday   = di === todayIdx;
+                    const isCurrent = isToday && ct.period === currentPeriod;
+                    return (
+                      <div
+                        key={d}
+                        className={[
+                          'grid-cell',
+                          !subj      ? 'empty'          : '',
+                          isToday    ? 'today-col'      : '',
+                          isCurrent  ? 'current-period' : '',
+                        ].filter(Boolean).join(' ')}
+                        style={subj ? { background: bg } : {}}
+                        aria-label={subj ? `${d}요일 ${ct.period}교시 ${subj}` : `${d}요일 ${ct.period}교시 없음`}
+                      >
+                        {subj || ''}
+                      </div>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── App ──────────────────────────────────────────────────────────────────
+    function App() {
+      const [data] = useState(() => loadData() || getDefaultData());
+
+      return (
+        <div className="app">
+          <div className="app-title">📅 오늘 시간표</div>
+          <SummaryCard schedule={data.schedule} colors={data.subjectColors} />
+          <WeeklyGrid  schedule={data.schedule} colors={data.subjectColors} />
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
