@@ -443,6 +443,199 @@
     }
     .btn-send-report:hover:not(:disabled) { background: #fff5f0; transform: translateY(-1px); }
     .btn-send-report:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Child Profile Auth (POMO-34: PIN 로그인 & 부모 자동 전환) ── */
+    .profile-switch-wrap {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+    }
+
+    .profile-switch-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255,255,255,0.75);
+      border: 2px solid #ffd6cc;
+      border-radius: 20px;
+      padding: 5px 12px 5px 8px;
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: #d94f2b;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      min-height: 44px;
+      min-width: 44px;
+      white-space: nowrap;
+    }
+    .profile-switch-btn:hover { background: rgba(255,255,255,0.95); transform: translateY(-1px); }
+    .profile-switch-btn:active { transform: scale(0.96); }
+    .profile-switch-avatar { font-size: 1.25rem; line-height: 1; }
+
+    .auth-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.48);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 300;
+      padding: 20px;
+    }
+
+    .auth-card {
+      background: #fff;
+      border-radius: 28px;
+      padding: 28px 22px 22px;
+      width: min(100%, 360px);
+      box-shadow: 0 20px 64px rgba(0,0,0,0.22);
+      text-align: center;
+      animation: notifFadeIn 0.25s ease-out both;
+    }
+
+    .auth-title {
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: #1a1a2e;
+      margin-bottom: 20px;
+    }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .profile-card {
+      background: #fff8f6;
+      border: 2.5px solid #ffd6cc;
+      border-radius: 16px;
+      padding: 14px 8px 10px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      min-height: 44px;
+      width: 100%;
+    }
+    .profile-card:hover:not(.locked) { border-color: #ff8c6b; background: #fff3ef; transform: translateY(-2px); }
+    .profile-card:active:not(.locked) { transform: scale(0.96); }
+    .profile-card.locked { opacity: 0.5; cursor: not-allowed; }
+
+    .profile-card-avatar { font-size: 2.4rem; line-height: 1; }
+    .profile-card-name   { font-size: 0.88rem; font-weight: 800; color: #1a1a2e; }
+    .profile-card-grade  { font-size: 0.72rem; color: #999; font-weight: 600; }
+    .profile-card-lock   { font-size: 0.68rem; color: #ef4444; font-weight: 700; margin-top: 2px; }
+
+    .btn-parent-mode {
+      width: 100%;
+      background: #f3e8ff;
+      border: 2px solid #c4b5fd;
+      color: #7c3aed;
+      border-radius: 14px;
+      font-size: 0.9rem;
+      font-weight: 800;
+      padding: 12px;
+      cursor: pointer;
+      min-height: 44px;
+      transition: background 0.12s, transform 0.1s;
+      margin-top: 4px;
+    }
+    .btn-parent-mode:hover { background: #ede9fe; transform: translateY(-1px); }
+
+    .no-signup-notice {
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: #ccc;
+      font-weight: 600;
+    }
+
+    /* ── PIN Entry ── */
+    .pin-profile-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 18px;
+    }
+    .pin-profile-emoji { font-size: 2.8rem; line-height: 1; }
+    .pin-profile-name  { font-size: 1.1rem; font-weight: 900; color: #1a1a2e; }
+
+    .pin-dots {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .pin-dot-circle {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2.5px solid #ddd;
+      background: transparent;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .pin-dot-circle.filled { background: #ff8c6b; border-color: #ff8c6b; }
+    .pin-dot-circle.error  { background: #ef4444; border-color: #ef4444; }
+
+    .pin-msg {
+      font-size: 0.85rem;
+      font-weight: 700;
+      min-height: 1.3em;
+      margin-bottom: 14px;
+      color: #999;
+    }
+    .pin-msg.pin-error { color: #ef4444; }
+    .pin-msg.pin-lock  { color: #7c3aed; }
+
+    .pin-keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+      max-width: 260px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .pin-key {
+      height: 58px;
+      border-radius: 14px;
+      border: none;
+      font-size: 1.5rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f7f7f7;
+      color: #1a1a2e;
+      transition: background 0.1s, transform 0.08s;
+      min-width: 44px;
+    }
+    .pin-key:hover:not(:disabled):not(.empty-key) { background: #ffe8e0; }
+    .pin-key:active:not(:disabled):not(.empty-key) { transform: scale(0.92); background: #ffd6cc; }
+    .pin-key:disabled { opacity: 0.35; cursor: not-allowed; }
+    .pin-key.del-key { font-size: 1.1rem; background: #fff0ee; color: #d94f2b; }
+    .pin-key.del-key:hover:not(:disabled) { background: #ffe0d8; }
+    .pin-key.empty-key { background: transparent; pointer-events: none; }
+
+    .btn-back {
+      background: none;
+      border: none;
+      color: #bbb;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 8px 20px;
+      min-height: 44px;
+      border-radius: 10px;
+      transition: background 0.1s, color 0.1s;
+    }
+    .btn-back:hover { background: #f5f5f5; color: #888; }
   </style>
 </head>
 <body>
@@ -454,6 +647,49 @@
     const STORAGE_KEY = 'pomodoro_v2';
     const LONG_BREAK_MIN = 15;
     const CYCLES_PER_ROUND = 4;
+
+    // ── Child Auth (POMO-34: PIN 로그인 & 부모 자동 전환) ──────────────
+    const CHILD_AUTH_KEY = 'child_auth_v2';
+    const PIN_MAX_FAILURES = 5;
+    const PIN_LOCK_MS = 10 * 60 * 1000; // 10분
+
+    // 데모용 기본 아동 프로필 (앱 첫 실행 시 자동 생성)
+    const DEMO_PROFILES = [
+      { id: 'demo1', nickname: '민준', avatarEmoji: '🐸', grade: 3, pin: '1234', pinFailures: 0, lockedUntil: null },
+      { id: 'demo2', nickname: '서연', avatarEmoji: '🐱', grade: 5, pin: '5678', pinFailures: 0, lockedUntil: null },
+    ];
+
+    function loadChildAuth() {
+      try {
+        const raw = localStorage.getItem(CHILD_AUTH_KEY);
+        if (!raw) {
+          const init = { profiles: DEMO_PROFILES, currentUser: { type: 'parent' } };
+          localStorage.setItem(CHILD_AUTH_KEY, JSON.stringify(init));
+          return init;
+        }
+        return JSON.parse(raw);
+      } catch { return { profiles: DEMO_PROFILES, currentUser: { type: 'parent' } }; }
+    }
+
+    function saveChildAuth(data) {
+      try { localStorage.setItem(CHILD_AUTH_KEY, JSON.stringify(data)); } catch {}
+    }
+
+    function isProfileLocked(profile) {
+      if (!profile.lockedUntil) return false;
+      return new Date(profile.lockedUntil) > new Date();
+    }
+
+    function getLockRemaining(profile) {
+      if (!profile.lockedUntil) return 0;
+      return Math.max(0, Math.ceil((new Date(profile.lockedUntil) - new Date()) / 1000));
+    }
+
+    function fmtLockSecs(secs) {
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      return m > 0 ? `${m}분 ${s}초 후 해제` : `${s}초 후 해제`;
+    }
 
     function getTodayStr() {
       const d = new Date();
@@ -663,6 +899,154 @@
       );
     }
 
+    // ── Auth Components (POMO-34) ─────────────────────────────────
+    function ProfileSwitchBtn({ currentUser, profiles, onClick }) {
+      const profile = currentUser.type === 'child'
+        ? profiles.find(p => p.id === currentUser.profileId) : null;
+      const label  = profile ? profile.nickname : '부모';
+      const avatar = profile ? profile.avatarEmoji : '👩‍💼';
+      return (
+        <div className="profile-switch-wrap">
+          <button
+            className="profile-switch-btn"
+            onClick={onClick}
+            aria-label={`현재 사용자: ${label}, 전환하기`}
+            title="프로필 전환"
+          >
+            <span className="profile-switch-avatar">{avatar}</span>
+            <span>{label}</span>
+          </button>
+        </div>
+      );
+    }
+
+    function ProfileSelectScreen({ profiles, isParent, onSelectChild, onParentMode, onClose }) {
+      return (
+        <div className="auth-overlay" onClick={onClose}>
+          <div className="auth-card" onClick={e => e.stopPropagation()}>
+            <div className="auth-title">누구예요? 👋</div>
+            <div className="profile-grid">
+              {profiles.map(p => {
+                const locked    = isProfileLocked(p);
+                const remaining = locked ? getLockRemaining(p) : 0;
+                return (
+                  <button
+                    key={p.id}
+                    className={`profile-card${locked ? ' locked' : ''}`}
+                    onClick={() => !locked && onSelectChild(p)}
+                    aria-label={`${p.nickname}, ${p.grade}학년${locked ? ', 잠금됨' : ''}`}
+                  >
+                    <span className="profile-card-avatar">{p.avatarEmoji}</span>
+                    <span className="profile-card-name">{p.nickname}</span>
+                    <span className="profile-card-grade">{p.grade}학년</span>
+                    {locked && <span className="profile-card-lock">🔒 {fmtLockSecs(remaining)}</span>}
+                  </button>
+                );
+              })}
+            </div>
+            {!isParent && (
+              <button className="btn-parent-mode" onClick={onParentMode}>
+                👩‍💼 부모 모드로
+              </button>
+            )}
+            <div className="no-signup-notice">아동 계정은 부모가 직접 만들어 줘요</div>
+          </div>
+        </div>
+      );
+    }
+
+    function PinEntryScreen({ profile, onSuccess, onFail, onBack }) {
+      const [pin,   setPin]   = React.useState('');
+      const [shake, setShake] = React.useState(false);
+      const [lockSecs, setLockSecs] = React.useState(() => getLockRemaining(profile));
+
+      React.useEffect(() => {
+        const remaining = getLockRemaining(profile);
+        setLockSecs(remaining);
+        if (remaining <= 0) return;
+        const id = setInterval(() => {
+          const r = getLockRemaining(profile);
+          setLockSecs(r);
+          if (r <= 0) clearInterval(id);
+        }, 1000);
+        return () => clearInterval(id);
+      }, [profile.lockedUntil]);
+
+      const locked          = lockSecs > 0;
+      const pinFailures     = profile.pinFailures || 0;
+      const remainingAttempts = Math.max(0, PIN_MAX_FAILURES - pinFailures);
+
+      function pressDigit(digit) {
+        if (locked || pin.length >= 4 || shake) return;
+        const next = pin + digit;
+        setPin(next);
+        if (next.length === 4) {
+          setTimeout(() => {
+            if (next === profile.pin) {
+              onSuccess();
+            } else {
+              setShake(true);
+              setTimeout(() => { setShake(false); setPin(''); }, 650);
+              onFail();
+            }
+          }, 100);
+        }
+      }
+
+      function pressDel() {
+        if (!shake) setPin(p => p.slice(0, -1));
+      }
+
+      let msgClass = 'pin-msg';
+      let msgText  = '비밀번호 4자리를 눌러요 🔢';
+      if (locked)           { msgClass = 'pin-msg pin-lock';  msgText = `🔒 ${fmtLockSecs(lockSecs)}`; }
+      else if (shake)       { msgClass = 'pin-msg pin-error'; msgText = `틀렸어요! (${remainingAttempts}번 남음)`; }
+      else if (pinFailures) { msgClass = 'pin-msg pin-error'; msgText = `${remainingAttempts}번 남았어요`; }
+
+      const keyDisabled = locked || pin.length >= 4 || shake;
+
+      return (
+        <div className="auth-overlay">
+          <div className="auth-card">
+            <div className="pin-profile-info">
+              <span className="pin-profile-emoji">{profile.avatarEmoji}</span>
+              <span className="pin-profile-name">{profile.nickname}</span>
+            </div>
+            <div className="pin-dots">
+              {Array.from({ length: 4 }, (_, i) => (
+                <div key={i} className={[
+                  'pin-dot-circle',
+                  i < pin.length ? (shake ? 'error' : 'filled') : '',
+                ].filter(Boolean).join(' ')} />
+              ))}
+            </div>
+            <div className={msgClass}>{msgText}</div>
+            <div className="pin-keypad">
+              {[1,2,3,4,5,6,7,8,9].map(n => (
+                <button key={n} className="pin-key"
+                  onClick={() => pressDigit(String(n))}
+                  disabled={keyDisabled}
+                  aria-label={String(n)}
+                >{n}</button>
+              ))}
+              <button className="pin-key empty-key" aria-hidden="true" tabIndex={-1} />
+              <button className="pin-key"
+                onClick={() => pressDigit('0')}
+                disabled={keyDisabled}
+                aria-label="0"
+              >0</button>
+              <button className="pin-key del-key"
+                onClick={pressDel}
+                disabled={locked || pin.length === 0 || shake}
+                aria-label="지우기"
+              >⌫</button>
+            </div>
+            <button className="btn-back" onClick={onBack}>← 뒤로</button>
+          </div>
+        </div>
+      );
+    }
+
     function TomatoCount({ count }) {
       if (count === 0) return <span className="tomatoes-empty">아직 없어요 😊</span>;
       if (count <= 12) return <span>{Array.from({ length: count }, () => '🍅').join(' ')}</span>;
@@ -716,6 +1100,73 @@
       const [sending, setSending] = useState(false);
       const [retrying, setRetrying] = useState({});
       const notifTimer = useRef(null);
+
+      // ── Auth state (POMO-34) ──────────────────────────────────────
+      const [childAuth,   setChildAuth]   = useState(() => loadChildAuth());
+      const [authScreen,  setAuthScreen]  = useState('none'); // 'none'|'profile_select'|'pin_entry'
+      const [pinTargetId, setPinTargetId] = useState(null);
+
+      const currentUser = childAuth.currentUser;
+      const profiles    = childAuth.profiles;
+
+      function applyChildAuth(updater) {
+        setChildAuth(prev => {
+          const next = updater(prev);
+          saveChildAuth(next);
+          return next;
+        });
+      }
+
+      function openProfileSelect() { setAuthScreen('profile_select'); }
+
+      function handleSelectChild(profile) {
+        if (currentUser.type === 'parent') {
+          // 방식 B — 부모가 아동 프로필 카드를 탭 → 즉시 전환 (PIN 불필요)
+          applyChildAuth(prev => ({ ...prev, currentUser: { type: 'child', profileId: profile.id } }));
+          setAuthScreen('none');
+        } else {
+          // 방식 A — 아동 본인 또는 다른 아동 전환 → PIN 입력 필요
+          setPinTargetId(profile.id);
+          setAuthScreen('pin_entry');
+        }
+      }
+
+      function handleParentMode() {
+        applyChildAuth(prev => ({ ...prev, currentUser: { type: 'parent' } }));
+        setAuthScreen('none');
+        setPinTargetId(null);
+      }
+
+      function handlePinSuccess() {
+        applyChildAuth(prev => ({
+          ...prev,
+          currentUser: { type: 'child', profileId: pinTargetId },
+          profiles: prev.profiles.map(p =>
+            p.id === pinTargetId ? { ...p, pinFailures: 0, lockedUntil: null } : p
+          ),
+        }));
+        setAuthScreen('none');
+        setPinTargetId(null);
+      }
+
+      function handlePinFail() {
+        applyChildAuth(prev => ({
+          ...prev,
+          profiles: prev.profiles.map(p => {
+            if (p.id !== pinTargetId) return p;
+            const newFailures  = (p.pinFailures || 0) + 1;
+            const lockedUntil  = newFailures >= PIN_MAX_FAILURES
+              ? new Date(Date.now() + PIN_LOCK_MS).toISOString()
+              : p.lockedUntil;
+            return { ...p, pinFailures: newFailures, lockedUntil };
+          }),
+        }));
+      }
+
+      function handleBackFromPin() {
+        setAuthScreen('profile_select');
+        setPinTargetId(null);
+      }
 
       function refreshOpsLog() { setOpsLog(loadOpsLog()); }
 
@@ -868,6 +1319,11 @@
 
       return (
         <div className="app">
+          <ProfileSwitchBtn
+            currentUser={currentUser}
+            profiles={profiles}
+            onClick={openProfileSelect}
+          />
           <div className="app-title">🍅 뽀모도로 타이머</div>
 
           <RoundDots cycleInRound={isLongBreakPhase ? CYCLES_PER_ROUND : cycleInRound} isLongBreak={isLongBreakPhase} />
@@ -1007,6 +1463,28 @@
               </div>
             </div>
           )}
+
+          {/* ── Auth Overlays (POMO-34) ── */}
+          {authScreen === 'profile_select' && (
+            <ProfileSelectScreen
+              profiles={profiles}
+              isParent={currentUser.type === 'parent'}
+              onSelectChild={handleSelectChild}
+              onParentMode={handleParentMode}
+              onClose={() => setAuthScreen('none')}
+            />
+          )}
+          {authScreen === 'pin_entry' && pinTargetId && (() => {
+            const pinTarget = profiles.find(p => p.id === pinTargetId);
+            return pinTarget ? (
+              <PinEntryScreen
+                profile={pinTarget}
+                onSuccess={handlePinSuccess}
+                onFail={handlePinFail}
+                onBack={handleBackFromPin}
+              />
+            ) : null;
+          })()}
         </div>
       );
     }
