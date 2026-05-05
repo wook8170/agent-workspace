@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>📅 일정 관리</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #e8f4fd 0%, #dce8ff 100%);
+      font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+      color: #1a1a2e;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(33,150,243,0.10);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-title { font-size: 1.35rem; font-weight: 900; color: #1565C0; }
+
+    .role-toggle {
+      display: flex;
+      gap: 0;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 2px solid #2196F3;
+    }
+    .role-btn {
+      padding: 6px 16px;
+      font-size: 0.88rem;
+      font-weight: 800;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: #2196F3;
+      min-height: 36px;
+      min-width: 44px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .role-btn.active { background: #2196F3; color: #fff; }
+
+    /* ── Main ── */
+    .main {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 16px 16px 100px;
+    }
+
+    /* ── Date section ── */
+    .date-section { margin-bottom: 20px; }
+    .date-heading {
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: #90A4AE;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+      padding-left: 4px;
+    }
+
+    /* ── Schedule card ── */
+    .schedule-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .schedule-card:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+    .schedule-card.completed { opacity: 0.5; }
+    .schedule-card.completed .card-title { text-decoration: line-through; }
+
+    .cat-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-top: 5px;
+      flex-shrink: 0;
+    }
+
+    .card-body { flex: 1; min-width: 0; }
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .card-meta {
+      font-size: 0.78rem;
+      color: #90A4AE;
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .cat-badge {
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 99px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .card-repeat { font-size: 0.72rem; color: #78909C; }
+    .card-time { font-size: 0.78rem; color: #78909C; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #B0BEC5;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    .empty-icon { font-size: 3rem; display: block; margin-bottom: 12px; }
+
+    /* ── FAB ── */
+    .fab {
+      position: fixed;
+      bottom: 28px;
+      right: 50%;
+      transform: translateX(50%);
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: #1565C0;
+      color: #fff;
+      font-size: 2rem;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 6px 24px rgba(21,101,192,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s, box-shadow 0.15s;
+      z-index: 50;
+      min-width: 44px;
+      min-height: 44px;
+    }
+    .fab:hover { transform: translateX(50%) scale(1.08); box-shadow: 0 8px 30px rgba(21,101,192,0.5); }
+    .fab:active { transform: translateX(50%) scale(0.95); }
+
+    /* ── Sheet overlay ── */
+    .sheet-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 200;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      animation: overlayIn 0.22s ease;
+    }
+    @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .sheet {
+      width: 100%;
+      max-width: 480px;
+      background: #fff;
+      border-radius: 24px 24px 0 0;
+      padding: 0 0 env(safe-area-inset-bottom, 0);
+      max-height: 92vh;
+      overflow-y: auto;
+      animation: sheetUp 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+    .sheet-handle {
+      width: 40px;
+      height: 4px;
+      background: #E0E0E0;
+      border-radius: 2px;
+      margin: 12px auto 0;
+    }
+
+    .sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid #F0F0F0;
+    }
+    .sheet-title { font-size: 1.1rem; font-weight: 900; color: #1a1a2e; }
+    .sheet-close {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: #F5F5F5;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      min-height: 44px;
+    }
+
+    .sheet-body { padding: 16px 20px 24px; }
+
+    /* ── Form fields ── */
+    .field { margin-bottom: 18px; }
+    .field-label {
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: #78909C;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .field-required { color: #ef4444; margin-left: 2px; }
+
+    .input {
+      width: 100%;
+      border: 2px solid #E0E0E0;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 1rem;
+      font-family: inherit;
+      color: #1a1a2e;
+      transition: border-color 0.15s;
+      background: #fff;
+      min-height: 48px;
+    }
+    .input:focus { outline: none; border-color: #2196F3; }
+    .input.error { border-color: #ef4444; }
+    .input-error { font-size: 0.78rem; color: #ef4444; margin-top: 4px; font-weight: 700; }
+
+    .char-count {
+      font-size: 0.72rem;
+      color: #B0BEC5;
+      text-align: right;
+      margin-top: 3px;
+    }
+    .char-count.over { color: #ef4444; }
+
+    textarea.input { resize: none; }
+
+    /* ── Category selector ── */
+    .cat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .cat-option {
+      border: 2px solid #E0E0E0;
+      border-radius: 12px;
+      padding: 10px 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      background: #fff;
+      transition: border-color 0.15s, background 0.15s;
+      min-height: 48px;
+    }
+    .cat-option:hover { border-color: #90CAF9; }
+    .cat-option.selected { border-color: var(--cat-color); background: color-mix(in srgb, var(--cat-color) 10%, white); }
+    .cat-option.disabled { opacity: 0.4; cursor: not-allowed; }
+    .cat-icon { font-size: 1.2rem; }
+
+    /* ── Subject chips ── */
+    .subject-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .subject-chip {
+      border: 2px solid #E0E0E0;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: #fff;
+      transition: border-color 0.15s, background 0.15s;
+      min-height: 36px;
+    }
+    .subject-chip.selected { border-color: #FFC107; background: #FFF8E1; color: #F57F17; }
+
+    /* ── Toggle row ── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+    }
+    .toggle-label { font-size: 0.95rem; font-weight: 700; }
+    .toggle {
+      width: 48px;
+      height: 28px;
+      border-radius: 14px;
+      background: #E0E0E0;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.2s;
+      min-width: 48px;
+      min-height: 28px;
+    }
+    .toggle.on { background: #2196F3; }
+    .toggle-knob {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      transition: transform 0.2s;
+    }
+    .toggle.on .toggle-knob { transform: translateX(20px); }
+
+    /* ── Time row ── */
+    .time-row { display: flex; gap: 10px; align-items: center; }
+    .time-label { font-size: 0.88rem; color: #78909C; font-weight: 700; min-width: 32px; }
+
+    /* ── Select ── */
+    .select {
+      width: 100%;
+      border: 2px solid #E0E0E0;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      color: #1a1a2e;
+      background: #fff;
+      cursor: pointer;
+      transition: border-color 0.15s;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2390A4AE' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+      min-height: 48px;
+    }
+    .select:focus { outline: none; border-color: #2196F3; }
+
+    /* ── Submit button ── */
+    .btn-submit {
+      width: 100%;
+      background: #1565C0;
+      color: #fff;
+      border: none;
+      border-radius: 16px;
+      padding: 16px;
+      font-size: 1.05rem;
+      font-weight: 900;
+      cursor: pointer;
+      min-height: 54px;
+      transition: background 0.15s, transform 0.1s;
+      margin-top: 8px;
+    }
+    .btn-submit:hover { background: #0D47A1; transform: translateY(-1px); }
+    .btn-submit:active { transform: translateY(0); }
+
+    .btn-delete {
+      width: 100%;
+      background: #fff;
+      color: #ef4444;
+      border: 2px solid #ef4444;
+      border-radius: 16px;
+      padding: 12px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      cursor: pointer;
+      min-height: 48px;
+      margin-top: 8px;
+      transition: background 0.15s;
+    }
+    .btn-delete:hover { background: #FFF5F5; }
+
+    /* ── Detail sheet ── */
+    .detail-field { margin-bottom: 14px; }
+    .detail-key { font-size: 0.78rem; font-weight: 800; color: #90A4AE; margin-bottom: 3px; }
+    .detail-val { font-size: 0.95rem; color: #1a1a2e; font-weight: 600; }
+
+    .btn-edit {
+      width: 100%;
+      background: #E3F2FD;
+      color: #1565C0;
+      border: none;
+      border-radius: 16px;
+      padding: 13px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      cursor: pointer;
+      min-height: 48px;
+      margin-top: 8px;
+      transition: background 0.15s;
+    }
+    .btn-edit:hover { background: #BBDEFB; }
+    .btn-edit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Dialog ── */
+    .dialog-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.50);
+      z-index: 300;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: overlayIn 0.18s ease;
+    }
+    .dialog {
+      background: #fff;
+      border-radius: 20px;
+      padding: 24px;
+      width: 100%;
+      max-width: 360px;
+      animation: dialogIn 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes dialogIn { from { opacity:0; transform: scale(0.86); } to { opacity:1; transform: scale(1); } }
+    .dialog-title { font-size: 1.1rem; font-weight: 900; margin-bottom: 8px; }
+    .dialog-body { font-size: 0.92rem; color: #546E7A; margin-bottom: 20px; line-height: 1.6; }
+    .dialog-actions { display: flex; flex-direction: column; gap: 8px; }
+    .dialog-btn {
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      border: none;
+      font-size: 0.95rem;
+      font-weight: 800;
+      cursor: pointer;
+      min-height: 48px;
+      transition: background 0.12s;
+    }
+    .dialog-btn.primary { background: #ef4444; color: #fff; }
+    .dialog-btn.primary:hover { background: #DC2626; }
+    .dialog-btn.secondary { background: #FFF3E0; color: #E65100; }
+    .dialog-btn.secondary:hover { background: #FFE0B2; }
+    .dialog-btn.cancel { background: #F5F5F5; color: #546E7A; }
+    .dialog-btn.cancel:hover { background: #EEEEEE; }
+
+    /* ── Permission denied toast ── */
+    .perm-toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1a1a2e;
+      color: #fff;
+      padding: 14px 24px;
+      border-radius: 14px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      z-index: 400;
+      animation: toastIn 0.2s ease, toastOut 0.3s ease 2s forwards;
+      white-space: nowrap;
+    }
+    @keyframes toastIn { from { opacity:0; transform: translateX(-50%) translateY(12px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+    @keyframes toastOut { from { opacity:1; } to { opacity:0; } }
+
+    /* ── Divider ── */
+    .divider { border: none; border-top: 1px solid #F0F0F0; margin: 12px 0; }
+
+    /* ── Section separator in sheet ── */
+    .field-group-title {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: #B0BEC5;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin: 20px 0 12px;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    const STORAGE_KEY = 'calendar_schedules_v1';
+
+    const CATEGORIES = [
+      { value: 'HOMEWORK', label: '숙제',  icon: '📚', color: '#FFC107' },
+      { value: 'SCHEDULE', label: '시간표', icon: '🏫', color: '#2196F3' },
+      { value: 'EVENT',    label: '행사',  icon: '🎉', color: '#4CAF50' },
+      { value: 'PERSONAL', label: '개인',  icon: '⭐', color: '#9C27B0' },
+    ];
+
+    const SUBJECTS = [
+      { value: 'KO',      label: '국어' },
+      { value: 'MATH',    label: '수학' },
+      { value: 'EN',      label: '영어' },
+      { value: 'SCIENCE', label: '과학' },
+      { value: 'SOCIAL',  label: '사회' },
+      { value: 'ETC',     label: '기타' },
+    ];
+
+    const REPEAT_TYPES = [
+      { value: 'NONE',    label: '없음' },
+      { value: 'DAILY',   label: '매일' },
+      { value: 'WEEKLY',  label: '매주' },
+      { value: 'MONTHLY', label: '매월' },
+    ];
+
+    const REMIND_OPTIONS = [
+      { value: null, label: '없음' },
+      { value: 0,    label: '당일 오전 8시' },
+      { value: 10,   label: '10분 전' },
+      { value: 30,   label: '30분 전' },
+      { value: 60,   label: '1시간 전' },
+      { value: 1440, label: '1일 전' },
+    ];
+
+    const CHILD_ALLOWED_CATEGORIES = ['HOMEWORK', 'PERSONAL'];
+
+    function genId() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    }
+
+    function getTodayStr() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function loadSchedules() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+      catch { return []; }
+    }
+
+    function saveSchedules(list) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch {}
+    }
+
+    function getCatInfo(value) {
+      return CATEGORIES.find(c => c.value === value) || CATEGORIES[0];
+    }
+
+    function fmtDate(dateStr) {
+      if (!dateStr) return '';
+      const [y, m, d] = dateStr.split('-');
+      const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+      const date = new Date(Number(y), Number(m) - 1, Number(d));
+      return `${m}월 ${d}일 (${weekdays[date.getDay()]})`;
+    }
+
+    function fmtRepeat(repeatType) {
+      const r = REPEAT_TYPES.find(x => x.value === repeatType);
+      return r && r.value !== 'NONE' ? `🔁 ${r.label}` : '';
+    }
+
+    function fmtRemind(v) {
+      const r = REMIND_OPTIONS.find(x => x.value === v);
+      return r ? r.label : '없음';
+    }
+
+    // ── Toggle ────────────────────────────────────────
+    function Toggle({ on, onChange }) {
+      return (
+        <button
+          role="switch"
+          aria-checked={on}
+          className={`toggle ${on ? 'on' : ''}`}
+          onClick={() => onChange(!on)}
+        >
+          <span className="toggle-knob" />
+        </button>
+      );
+    }
+
+    // ── Schedule Form ─────────────────────────────────
+    const EMPTY_FORM = {
+      title: '',
+      description: '',
+      startDate: getTodayStr(),
+      endDate: getTodayStr(),
+      isAllDay: true,
+      startTime: '09:00',
+      endTime: '10:00',
+      category: 'HOMEWORK',
+      subjectCode: 'KO',
+      repeatType: 'NONE',
+      repeatEndDate: '',
+      remindOffsetMinutes: null,
+    };
+
+    function ScheduleForm({ initial, userRole, onSave, onDelete, isEdit }) {
+      const [form, setForm] = useState(() => initial || EMPTY_FORM);
+      const [errors, setErrors] = useState({});
+
+      function set(key, value) {
+        setForm(f => ({ ...f, [key]: value }));
+        setErrors(e => ({ ...e, [key]: '' }));
+      }
+
+      function validate() {
+        const errs = {};
+        if (!form.title.trim()) errs.title = '제목을 입력해 주세요.';
+        else if (form.title.length > 50) errs.title = '제목은 최대 50자입니다.';
+        if (form.description.length > 200) errs.description = '설명은 최대 200자입니다.';
+        if (!form.startDate) errs.startDate = '날짜를 선택해 주세요.';
+        if (form.endDate && form.endDate < form.startDate) errs.endDate = '종료일이 시작일보다 빨라요.';
+        if (form.repeatType !== 'NONE' && form.repeatEndDate && form.repeatEndDate < form.startDate)
+          errs.repeatEndDate = '반복 종료일이 시작일보다 빨라요.';
+        return errs;
+      }
+
+      function handleSubmit() {
+        const errs = validate();
+        if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+        onSave({
+          ...form,
+          endDate: form.endDate || form.startDate,
+          subjectCode: form.category === 'HOMEWORK' ? form.subjectCode : null,
+          repeatEndDate: form.repeatType !== 'NONE' ? form.repeatEndDate || null : null,
+        });
+      }
+
+      const isChildBlocked = userRole === 'child' && !CHILD_ALLOWED_CATEGORIES.includes(form.category);
+
+      return (
+        <div>
+          {/* 제목 */}
+          <div className="field">
+            <label className="field-label">제목<span className="field-required">*</span></label>
+            <input
+              className={`input${errors.title ? ' error' : ''}`}
+              maxLength={51}
+              value={form.title}
+              onChange={e => set('title', e.target.value)}
+              placeholder="일정 제목을 입력해 주세요"
+            />
+            <div className={`char-count${form.title.length > 50 ? ' over' : ''}`}>{form.title.length}/50</div>
+            {errors.title && <div className="input-error">{errors.title}</div>}
+          </div>
+
+          {/* 날짜 */}
+          <div className="field">
+            <label className="field-label">시작일<span className="field-required">*</span></label>
+            <input
+              type="date"
+              className={`input${errors.startDate ? ' error' : ''}`}
+              value={form.startDate}
+              onChange={e => {
+                set('startDate', e.target.value);
+                if (!form.endDate || form.endDate < e.target.value) set('endDate', e.target.value);
+              }}
+            />
+            {errors.startDate && <div className="input-error">{errors.startDate}</div>}
+          </div>
+
+          <div className="field">
+            <label className="field-label">종료일</label>
+            <input
+              type="date"
+              className={`input${errors.endDate ? ' error' : ''}`}
+              value={form.endDate}
+              min={form.startDate}
+              onChange={e => set('endDate', e.target.value)}
+            />
+            {errors.endDate && <div className="input-error">{errors.endDate}</div>}
+          </div>
+
+          {/* 종일 여부 */}
+          <div className="toggle-row">
+            <span className="toggle-label">종일 일정</span>
+            <Toggle on={form.isAllDay} onChange={v => set('isAllDay', v)} />
+          </div>
+
+          {!form.isAllDay && (
+            <div className="field">
+              <label className="field-label">시간</label>
+              <div className="time-row">
+                <span className="time-label">시작</span>
+                <input type="time" className="input" value={form.startTime} onChange={e => set('startTime', e.target.value)} style={{ flex:1 }} />
+                <span className="time-label">종료</span>
+                <input type="time" className="input" value={form.endTime} onChange={e => set('endTime', e.target.value)} style={{ flex:1 }} />
+              </div>
+            </div>
+          )}
+
+          {/* 카테고리 */}
+          <div className="field">
+            <label className="field-label">카테고리<span className="field-required">*</span></label>
+            <div className="cat-grid">
+              {CATEGORIES.map(cat => {
+                const blocked = userRole === 'child' && !CHILD_ALLOWED_CATEGORIES.includes(cat.value);
+                const selected = form.category === cat.value;
+                return (
+                  <button
+                    key={cat.value}
+                    className={`cat-option${selected ? ' selected' : ''}${blocked ? ' disabled' : ''}`}
+                    style={{ '--cat-color': cat.color }}
+                    onClick={() => { if (!blocked) set('category', cat.value); }}
+                    title={blocked ? '부모만 추가할 수 있습니다' : ''}
+                    aria-pressed={selected}
+                    aria-disabled={blocked}
+                  >
+                    <span className="cat-icon">{cat.icon}</span>
+                    {cat.label}
+                    {blocked && ' 🔒'}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 과목 (HOMEWORK 전용) */}
+          {form.category === 'HOMEWORK' && (
+            <div className="field">
+              <label className="field-label">과목</label>
+              <div className="subject-chips">
+                {SUBJECTS.map(s => (
+                  <button
+                    key={s.value}
+                    className={`subject-chip${form.subjectCode === s.value ? ' selected' : ''}`}
+                    onClick={() => set('subjectCode', s.value)}
+                    aria-pressed={form.subjectCode === s.value}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="field-group-title">추가 옵션</div>
+
+          {/* 설명 */}
+          <div className="field">
+            <label className="field-label">설명</label>
+            <textarea
+              className={`input${errors.description ? ' error' : ''}`}
+              rows={3}
+              maxLength={201}
+              value={form.description}
+              onChange={e => set('description', e.target.value)}
+              placeholder="설명을 입력해 주세요 (선택)"
+            />
+            <div className={`char-count${form.description.length > 200 ? ' over' : ''}`}>{form.description.length}/200</div>
+            {errors.description && <div className="input-error">{errors.description}</div>}
+          </div>
+
+          {/* 반복 */}
+          <div className="field">
+            <label className="field-label">반복</label>
+            <select className="select" value={form.repeatType} onChange={e => set('repeatType', e.target.value)}>
+              {REPEAT_TYPES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
+          </div>
+
+          {form.repeatType !== 'NONE' && (
+            <div className="field">
+              <label className="field-label">반복 종료일</label>
+              <input
+                type="date"
+                className={`input${errors.repeatEndDate ? ' error' : ''}`}
+                value={form.repeatEndDate}
+                min={form.startDate}
+                onChange={e => set('repeatEndDate', e.target.value)}
+              />
+              {errors.repeatEndDate && <div className="input-error">{errors.repeatEndDate}</div>}
+            </div>
+          )}
+
+          {/* 알림 */}
+          <div className="field">
+            <label className="field-label">알림</label>
+            <select
+              className="select"
+              value={form.remindOffsetMinutes === null ? 'null' : String(form.remindOffsetMinutes)}
+              onChange={e => set('remindOffsetMinutes', e.target.value === 'null' ? null : Number(e.target.value))}
+            >
+              {REMIND_OPTIONS.map(r => (
+                <option key={String(r.value)} value={r.value === null ? 'null' : String(r.value)}>{r.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {isChildBlocked && (
+            <div style={{ background: '#FFF3E0', borderRadius: 12, padding: '10px 14px', marginBottom: 12, fontSize: '0.88rem', color: '#E65100', fontWeight: 700 }}>
+              🔒 선택한 카테고리는 부모만 추가할 수 있습니다.
+            </div>
+          )}
+
+          <button
+            className="btn-submit"
+            onClick={handleSubmit}
+            disabled={isChildBlocked}
+            style={isChildBlocked ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
+          >
+            {isEdit ? '저장' : '일정 추가'}
+          </button>
+
+          {isEdit && onDelete && (
+            <button className="btn-delete" onClick={onDelete}>삭제</button>
+          )}
+        </div>
+      );
+    }
+
+    // ── Delete Dialog ─────────────────────────────────
+    function DeleteDialog({ isRepeat, onCancel, onDeleteSingle, onDeleteFuture }) {
+      return (
+        <div className="dialog-overlay" onClick={onCancel}>
+          <div className="dialog" onClick={e => e.stopPropagation()}>
+            <div className="dialog-title">일정 삭제</div>
+            {isRepeat ? (
+              <>
+                <div className="dialog-body">이 반복 일정을 어떻게 삭제할까요?</div>
+                <div className="dialog-actions">
+                  <button className="dialog-btn primary" onClick={onDeleteSingle}>이 일정만 삭제</button>
+                  <button className="dialog-btn secondary" onClick={onDeleteFuture}>이후 모든 반복 삭제</button>
+                  <button className="dialog-btn cancel" onClick={onCancel}>취소</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="dialog-body">이 일정을 삭제할까요? 되돌릴 수 없어요.</div>
+                <div className="dialog-actions">
+                  <button className="dialog-btn primary" onClick={onDeleteSingle}>삭제</button>
+                  <button className="dialog-btn cancel" onClick={onCancel}>취소</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Detail Sheet ──────────────────────────────────
+    function DetailSheet({ schedule, userRole, onClose, onEdit, onDelete }) {
+      const cat = getCatInfo(schedule.category);
+      const subject = schedule.subjectCode ? SUBJECTS.find(s => s.value === schedule.subjectCode) : null;
+      const canModify = userRole === 'parent' || CHILD_ALLOWED_CATEGORIES.includes(schedule.category);
+
+      return (
+        <div className="sheet-overlay" onClick={onClose}>
+          <div className="sheet" onClick={e => e.stopPropagation()}>
+            <div className="sheet-handle" />
+            <div className="sheet-header">
+              <span className="sheet-title">{schedule.title}</span>
+              <button className="sheet-close" onClick={onClose} aria-label="닫기">✕</button>
+            </div>
+            <div className="sheet-body">
+              <div className="detail-field">
+                <div className="detail-key">카테고리</div>
+                <div className="detail-val">
+                  <span className="cat-badge" style={{ background: cat.color + '22', color: cat.color }}>
+                    {cat.icon} {cat.label}
+                    {subject && ` — ${subject.label}`}
+                  </span>
+                </div>
+              </div>
+              <div className="detail-field">
+                <div className="detail-key">날짜</div>
+                <div className="detail-val">
+                  {fmtDate(schedule.startDate)}
+                  {schedule.endDate !== schedule.startDate && ` ~ ${fmtDate(schedule.endDate)}`}
+                </div>
+              </div>
+              {!schedule.isAllDay && (
+                <div className="detail-field">
+                  <div className="detail-key">시간</div>
+                  <div className="detail-val">{schedule.startTime} ~ {schedule.endTime}</div>
+                </div>
+              )}
+              {schedule.description ? (
+                <div className="detail-field">
+                  <div className="detail-key">설명</div>
+                  <div className="detail-val" style={{ whiteSpace: 'pre-wrap' }}>{schedule.description}</div>
+                </div>
+              ) : null}
+              {schedule.repeatType !== 'NONE' && (
+                <div className="detail-field">
+                  <div className="detail-key">반복</div>
+                  <div className="detail-val">
+                    {REPEAT_TYPES.find(r => r.value === schedule.repeatType)?.label}
+                    {schedule.repeatEndDate ? ` (${fmtDate(schedule.repeatEndDate)}까지)` : ''}
+                  </div>
+                </div>
+              )}
+              {schedule.remindOffsetMinutes !== null && (
+                <div className="detail-field">
+                  <div className="detail-key">알림</div>
+                  <div className="detail-val">{fmtRemind(schedule.remindOffsetMinutes)}</div>
+                </div>
+              )}
+              {schedule.category === 'HOMEWORK' && (
+                <div className="detail-field">
+                  <div className="detail-key">완료 여부</div>
+                  <div className="detail-val">{schedule.isCompleted ? '✅ 완료' : '⏳ 미완료'}</div>
+                </div>
+              )}
+              <hr className="divider" />
+              <button className="btn-edit" onClick={onEdit} disabled={!canModify}>
+                {canModify ? '✏️ 수정' : '🔒 부모만 수정할 수 있습니다'}
+              </button>
+              {canModify && (
+                <button className="btn-delete" onClick={onDelete}>삭제</button>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Permission Toast ──────────────────────────────
+    function PermToast({ onDone }) {
+      useEffect(() => {
+        const t = setTimeout(onDone, 2400);
+        return () => clearTimeout(t);
+      }, []);
+      return <div className="perm-toast">🔒 부모만 추가할 수 있습니다</div>;
+    }
+
+    // ── App ───────────────────────────────────────────
+    function App() {
+      const [schedules, setSchedules] = useState(loadSchedules);
+      const [userRole, setUserRole] = useState('child'); // 'parent' | 'child'
+      const [sheet, setSheet] = useState(null); // null | 'add' | 'edit' | 'detail'
+      const [selected, setSelected] = useState(null); // selected schedule
+      const [showDelete, setShowDelete] = useState(false);
+      const [showPermToast, setShowPermToast] = useState(false);
+
+      function persist(list) {
+        setSchedules(list);
+        saveSchedules(list);
+      }
+
+      function handleFab() {
+        // No category restriction on open — the form handles it
+        setSelected(null);
+        setSheet('add');
+      }
+
+      function handleSave(formData) {
+        const now = new Date().toISOString();
+        if (sheet === 'edit' && selected) {
+          const updated = schedules.map(s =>
+            s.id === selected.id
+              ? { ...s, ...formData, updatedAt: now }
+              : s
+          );
+          persist(updated);
+        } else {
+          const newSchedule = {
+            id: genId(),
+            childProfileId: 'demo-child-001',
+            isCompleted: false,
+            createdById: userRole,
+            createdAt: now,
+            updatedAt: now,
+            ...formData,
+          };
+          persist([...schedules, newSchedule]);
+        }
+        setSheet(null);
+        setSelected(null);
+      }
+
+      function handleDeleteRequest() {
+        setShowDelete(true);
+      }
+
+      function handleDeleteSingle() {
+        if (!selected) return;
+        persist(schedules.filter(s => s.id !== selected.id));
+        setShowDelete(false);
+        setSheet(null);
+        setSelected(null);
+      }
+
+      function handleDeleteFuture() {
+        if (!selected) return;
+        // Set repeatEndDate to day before selected's startDate
+        const prevDay = new Date(selected.startDate);
+        prevDay.setDate(prevDay.getDate() - 1);
+        const prevStr = prevDay.toISOString().slice(0, 10);
+        const updated = schedules.map(s =>
+          s.id === selected.id
+            ? { ...s, repeatEndDate: prevStr, updatedAt: new Date().toISOString() }
+            : s
+        );
+        persist(updated);
+        setShowDelete(false);
+        setSheet(null);
+        setSelected(null);
+      }
+
+      function openDetail(schedule) {
+        setSelected(schedule);
+        setSheet('detail');
+      }
+
+      function openEdit() {
+        setSheet('edit');
+      }
+
+      function closeSheet() {
+        setSheet(null);
+        setSelected(null);
+      }
+
+      // Group schedules by startDate, sorted ascending
+      const grouped = schedules.reduce((acc, s) => {
+        const key = s.startDate;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(s);
+        return acc;
+      }, {});
+      const sortedDates = Object.keys(grouped).sort();
+
+      const editInitial = sheet === 'edit' && selected ? {
+        title: selected.title,
+        description: selected.description || '',
+        startDate: selected.startDate,
+        endDate: selected.endDate,
+        isAllDay: selected.isAllDay,
+        startTime: selected.startTime || '09:00',
+        endTime: selected.endTime || '10:00',
+        category: selected.category,
+        subjectCode: selected.subjectCode || 'KO',
+        repeatType: selected.repeatType,
+        repeatEndDate: selected.repeatEndDate || '',
+        remindOffsetMinutes: selected.remindOffsetMinutes,
+      } : null;
+
+      return (
+        <>
+          <header className="header">
+            <span className="header-title">📅 일정 관리</span>
+            <div className="role-toggle" role="group" aria-label="사용자 모드 전환">
+              <button
+                className={`role-btn${userRole === 'child' ? ' active' : ''}`}
+                onClick={() => setUserRole('child')}
+              >아동</button>
+              <button
+                className={`role-btn${userRole === 'parent' ? ' active' : ''}`}
+                onClick={() => setUserRole('parent')}
+              >부모</button>
+            </div>
+          </header>
+
+          <main className="main">
+            {sortedDates.length === 0 ? (
+              <div className="empty-state">
+                <span className="empty-icon">📭</span>
+                아직 일정이 없어요.<br />아래 + 버튼으로 추가해 보세요!
+              </div>
+            ) : (
+              sortedDates.map(date => (
+                <div key={date} className="date-section">
+                  <div className="date-heading">{fmtDate(date)}</div>
+                  {grouped[date].map(s => {
+                    const cat = getCatInfo(s.category);
+                    return (
+                      <div
+                        key={s.id}
+                        className={`schedule-card${s.isCompleted ? ' completed' : ''}`}
+                        onClick={() => openDetail(s)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={e => e.key === 'Enter' && openDetail(s)}
+                        aria-label={`${s.title} 일정 상세 보기`}
+                      >
+                        <div className="cat-dot" style={{ background: cat.color }} aria-hidden="true" />
+                        <div className="card-body">
+                          <div className="card-title">{s.title}</div>
+                          <div className="card-meta">
+                            <span
+                              className="cat-badge"
+                              style={{ background: cat.color + '22', color: cat.color }}
+                              aria-label={`카테고리: ${cat.label}`}
+                            >
+                              {cat.icon} {cat.label}
+                            </span>
+                            {!s.isAllDay && (
+                              <span className="card-time">{s.startTime}~{s.endTime}</span>
+                            )}
+                            {s.repeatType !== 'NONE' && (
+                              <span className="card-repeat">{fmtRepeat(s.repeatType)}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))
+            )}
+          </main>
+
+          <button
+            className="fab"
+            onClick={handleFab}
+            aria-label="일정 추가"
+            title="일정 추가"
+          >+</button>
+
+          {/* Add Sheet */}
+          {sheet === 'add' && (
+            <div className="sheet-overlay" onClick={closeSheet}>
+              <div className="sheet" onClick={e => e.stopPropagation()}>
+                <div className="sheet-handle" />
+                <div className="sheet-header">
+                  <span className="sheet-title">일정 추가</span>
+                  <button className="sheet-close" onClick={closeSheet} aria-label="닫기">✕</button>
+                </div>
+                <div className="sheet-body">
+                  <ScheduleForm
+                    userRole={userRole}
+                    onSave={handleSave}
+                    isEdit={false}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Edit Sheet */}
+          {sheet === 'edit' && selected && (
+            <div className="sheet-overlay" onClick={closeSheet}>
+              <div className="sheet" onClick={e => e.stopPropagation()}>
+                <div className="sheet-handle" />
+                <div className="sheet-header">
+                  <span className="sheet-title">일정 수정</span>
+                  <button className="sheet-close" onClick={closeSheet} aria-label="닫기">✕</button>
+                </div>
+                <div className="sheet-body">
+                  <ScheduleForm
+                    initial={editInitial}
+                    userRole={userRole}
+                    onSave={handleSave}
+                    onDelete={handleDeleteRequest}
+                    isEdit={true}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Detail Sheet */}
+          {sheet === 'detail' && selected && (
+            <DetailSheet
+              schedule={selected}
+              userRole={userRole}
+              onClose={closeSheet}
+              onEdit={openEdit}
+              onDelete={handleDeleteRequest}
+            />
+          )}
+
+          {/* Delete Dialog */}
+          {showDelete && selected && (
+            <DeleteDialog
+              isRepeat={selected.repeatType !== 'NONE'}
+              onCancel={() => setShowDelete(false)}
+              onDeleteSingle={handleDeleteSingle}
+              onDeleteFuture={handleDeleteFuture}
+            />
+          )}
+
+          {/* Permission Toast */}
+          {showPermToast && (
+            <PermToast onDone={() => setShowPermToast(false)} />
+          )}
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
