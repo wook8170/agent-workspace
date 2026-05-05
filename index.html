@@ -443,6 +443,41 @@
     }
     .btn-send-report:hover:not(:disabled) { background: #fff5f0; transform: translateY(-1px); }
     .btn-send-report:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Ops Alert Banner (OPS-001) ── */
+    .ops-alert-banner {
+      background: #fff1f0;
+      border: 2px solid #ff4d4f;
+      border-radius: 14px;
+      padding: 10px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.88rem;
+      font-weight: 800;
+      color: #cf1322;
+      text-align: left;
+    }
+
+    .ops-alert-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .ops-alert-msg  { flex: 1; }
+
+    .ops-alert-link {
+      background: none;
+      border: 1.5px solid #cf1322;
+      color: #cf1322;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      cursor: pointer;
+      min-height: 32px;
+      min-width: 44px;
+      white-space: nowrap;
+      transition: background 0.12s;
+    }
+    .ops-alert-link:hover { background: #fff0ee; }
   </style>
 </head>
 <body>
@@ -567,7 +602,7 @@
     }
 
     function saveOpsLog(log) {
-      try { localStorage.setItem(OPS_LOG_KEY, JSON.stringify(log.slice(-30))); } catch {}
+      try { localStorage.setItem(OPS_LOG_KEY, JSON.stringify(log.slice(-50))); } catch {}
     }
 
     function addOpsEntry(type, label, details) {
@@ -612,7 +647,7 @@
       if (log.length === 0) return null;
 
       return (
-        <div className="ops-section">
+        <div className="ops-section" id="ops-log-section">
           <div
             className="ops-header"
             onClick={() => setExpanded(e => !e)}
@@ -865,10 +900,23 @@
       const progress    = totalSec > 0 ? timeLeft / totalSec : 1;
       const dashOffset  = RING_C * (1 - progress);
       const phaseInfo   = getPhaseInfo(phase);
+      const failCount   = opsLog.filter(e => e.status === 'failed').length;
 
       return (
         <div className="app">
           <div className="app-title">🍅 뽀모도로 타이머</div>
+
+          {failCount > 0 && (
+            <div className="ops-alert-banner" role="alert" aria-live="assertive">
+              <span className="ops-alert-icon">⚠️</span>
+              <span className="ops-alert-msg">처리 실패 {failCount}건 — 확인이 필요합니다</span>
+              <button
+                className="ops-alert-link"
+                onClick={() => document.getElementById('ops-log-section')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })}
+                aria-label="운영 로그로 이동"
+              >확인하기 ↓</button>
+            </div>
+          )}
 
           <RoundDots cycleInRound={isLongBreakPhase ? CYCLES_PER_ROUND : cycleInRound} isLongBreak={isLongBreakPhase} />
 
