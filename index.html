@@ -24,6 +24,10 @@
       background: linear-gradient(135deg, #d4f1e4 0%, #89f7cf 50%, #60e6b9 100%);
     }
 
+    body.longbreak-bg {
+      background: linear-gradient(135deg, #e8d5f5 0%, #c4a8e8 50%, #9b70d4 100%);
+    }
+
     .app {
       width: min(100%, 440px);
       background: rgba(255, 255, 255, 0.93);
@@ -38,9 +42,30 @@
       font-size: 1.7rem;
       font-weight: 900;
       color: #d94f2b;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
       letter-spacing: -0.02em;
     }
+
+    /* ── Round progress dots ── */
+    .round-dots {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .round-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2.5px solid #ff8c6b;
+      background: transparent;
+      transition: background 0.3s, border-color 0.3s;
+    }
+
+    .round-dot.filled { background: #ff8c6b; }
+    .round-dot.lb-style { border-color: #9b70d4; }
+    .round-dot.filled.lb-style { background: #9b70d4; }
 
     /* ── Settings ── */
     .settings { margin-bottom: 24px; }
@@ -69,6 +94,13 @@
       text-align: center;
     }
 
+    .setting-hint {
+      font-size: 0.82rem;
+      color: #9b70d4;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
     /* ── Stepper buttons ── */
     .stepper-btn {
       width: 44px;
@@ -90,14 +122,45 @@
     .stepper-btn:active:not(:disabled) { transform: scale(0.93); }
     .stepper-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-    /* ── Mode label ── */
+    /* ── Mode row with character ── */
+    .mode-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .mode-character {
+      font-size: 1.9rem;
+      line-height: 1;
+      animation: charBounce 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes charBounce {
+      from { transform: translateY(0); }
+      to   { transform: translateY(-6px); }
+    }
+
     .mode-label {
       font-size: 1.2rem;
       font-weight: 800;
       color: #d94f2b;
-      margin-bottom: 4px;
     }
-    .mode-label.break-mode { color: #0ca678; }
+    .mode-label.break-mode     { color: #0ca678; }
+    .mode-label.longbreak-mode { color: #7c3aed; }
+
+    /* ── Long-break chip ── */
+    .longbreak-chip {
+      display: inline-block;
+      background: #f3e8ff;
+      color: #7c3aed;
+      font-size: 0.82rem;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
 
     /* ── Timer ring ── */
     .timer-ring-wrap {
@@ -116,10 +179,11 @@
       transform: rotate(-90deg);
     }
 
-    .ring-bg    { fill: none; stroke: #f0e0d8; stroke-width: 10; }
-    .ring-track { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 0.6s linear; }
-    .ring-focus { stroke: #ff6b6b; }
-    .ring-break { stroke: #20c997; }
+    .ring-bg        { fill: none; stroke: #f0e0d8; stroke-width: 10; }
+    .ring-track     { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 0.6s linear; }
+    .ring-focus     { stroke: #ff6b6b; }
+    .ring-break     { stroke: #20c997; }
+    .ring-longbreak { stroke: #9b70d4; }
 
     .timer-display {
       font-size: clamp(3rem, 14vw, 4.5rem);
@@ -166,9 +230,9 @@
       color: #fff;
       box-shadow: 0 4px 18px rgba(46, 125, 50, 0.45);
     }
-    .btn-pause  { background: #E65100; color: #fff; box-shadow: 0 4px 14px rgba(230,81,0,.4); } /* 4.7:1 ✓ AA */
+    .btn-pause  { background: #E65100; color: #fff; box-shadow: 0 4px 14px rgba(230,81,0,.4); }   /* 4.7:1 ✓ AA */
     .btn-resume { background: #1565C0; color: #fff; box-shadow: 0 4px 14px rgba(21,101,192,.4); } /* 7.1:1 ✓ AA */
-    .btn-reset  { background: #6A1B9A; color: #fff; } /* 6.5:1 ✓ AA */
+    .btn-reset  { background: #6A1B9A; color: #fff; }                                              /* 6.5:1 ✓ AA */
 
     .controls {
       display: flex;
@@ -177,9 +241,17 @@
       margin-top: 4px;
     }
 
+    /* ── Completed rounds ── */
+    .rounds-row {
+      margin-top: 14px;
+      font-size: 0.88rem;
+      font-weight: 800;
+      color: #7c3aed;
+    }
+
     /* ── Sessions ── */
     .sessions {
-      margin-top: 24px;
+      margin-top: 16px;
       padding-top: 18px;
       border-top: 2px dashed #f5d8d0;
     }
@@ -216,16 +288,26 @@
     .notif-box {
       background: rgba(255, 255, 255, 0.97);
       border-radius: 28px;
-      padding: 28px 44px;
-      font-size: 1.85rem;
-      font-weight: 900;
-      color: #d94f2b;
+      padding: 24px 44px;
       box-shadow: 0 16px 48px rgba(0,0,0,0.14);
       animation: notifFadeIn 0.5s ease-out both;
       text-align: center;
     }
 
-    .notif-box.break-notif { color: #0ca678; }
+    .notif-emoji {
+      font-size: 3.4rem;
+      display: block;
+      margin-bottom: 6px;
+      animation: charBounce 0.6s ease-in-out infinite alternate;
+    }
+
+    .notif-text {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #d94f2b;
+    }
+    .notif-box.break-notif     .notif-text { color: #0ca678; }
+    .notif-box.longbreak-notif .notif-text { color: #7c3aed; }
 
     @keyframes notifFadeIn {
       from { opacity: 0; transform: scale(0.82); }
@@ -239,26 +321,32 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    const STORAGE_KEY = 'pomodoro_sessions_v1';
+    const STORAGE_KEY = 'pomodoro_v2';
+    const LONG_BREAK_MIN = 15;
+    const CYCLES_PER_ROUND = 4;
 
     function getTodayStr() {
       const d = new Date();
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
 
-    function loadSessions() {
+    function loadPersistedState() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return 0;
-        const { count, date } = JSON.parse(raw);
-        return date === getTodayStr() ? (count | 0) : 0;
-      } catch { return 0; }
+        if (!raw) return { sessions: 0, rounds: 0, cycleInRound: 0 };
+        const { sessions, rounds, cycleInRound, date } = JSON.parse(raw);
+        if (date !== getTodayStr()) return { sessions: 0, rounds: 0, cycleInRound: 0 };
+        return { sessions: sessions | 0, rounds: rounds | 0, cycleInRound: cycleInRound | 0 };
+      } catch { return { sessions: 0, rounds: 0, cycleInRound: 0 }; }
     }
 
-    function saveSessions(count) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ count, date: getTodayStr() }));
+    function persistState(sessions, rounds, cycleInRound) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        sessions, rounds, cycleInRound, date: getTodayStr()
+      }));
     }
 
+    // Focus session done → two ascending beeps
     function playFocusEndSound() {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -266,19 +354,35 @@
         [[880, 0], [1100, 0.32]].forEach(([freq, delay]) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.type = 'sine';
-          osc.frequency.value = freq;
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.type = 'sine'; osc.frequency.value = freq;
           gain.gain.setValueAtTime(0.28, t + delay);
           gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.28);
-          osc.start(t + delay);
-          osc.stop(t + delay + 0.28);
+          osc.start(t + delay); osc.stop(t + delay + 0.28);
         });
         setTimeout(() => ctx.close(), 1600);
       } catch (_) {}
     }
 
+    // 4th focus in round → celebratory ascending chord
+    function playRoundCompleteSound() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const t = ctx.currentTime;
+        [[523, 0], [659, 0.18], [784, 0.36], [1047, 0.54]].forEach(([freq, delay]) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.type = 'triangle'; osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.25, t + delay);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.32);
+          osc.start(t + delay); osc.stop(t + delay + 0.32);
+        });
+        setTimeout(() => ctx.close(), 2000);
+      } catch (_) {}
+    }
+
+    // Short break done → ascending triplet
     function playBreakEndSound() {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -286,16 +390,31 @@
         [[523, 0], [659, 0.2], [784, 0.4]].forEach(([freq, delay]) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.type = 'triangle';
-          osc.frequency.value = freq;
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.type = 'triangle'; osc.frequency.value = freq;
           gain.gain.setValueAtTime(0.22, t + delay);
           gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.2);
-          osc.start(t + delay);
-          osc.stop(t + delay + 0.2);
+          osc.start(t + delay); osc.stop(t + delay + 0.2);
         });
         setTimeout(() => ctx.close(), 1600);
+      } catch (_) {}
+    }
+
+    // Long break done → energetic 5-note scale
+    function playLongBreakEndSound() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const t = ctx.currentTime;
+        [[523, 0], [587, 0.14], [659, 0.28], [784, 0.42], [1047, 0.56]].forEach(([freq, delay]) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.type = 'sine'; osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.22, t + delay);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.22);
+          osc.start(t + delay); osc.stop(t + delay + 0.22);
+        });
+        setTimeout(() => ctx.close(), 2000);
       } catch (_) {}
     }
 
@@ -311,118 +430,167 @@
       return <span>🍅×{count}</span>;
     }
 
+    function RoundDots({ cycleInRound, isLongBreak }) {
+      return (
+        <div className="round-dots" aria-label={`이번 라운드 ${cycleInRound}번 완료`}>
+          {Array.from({ length: CYCLES_PER_ROUND }, (_, i) => (
+            <div
+              key={i}
+              className={[
+                'round-dot',
+                i < cycleInRound ? 'filled' : '',
+                isLongBreak ? 'lb-style' : '',
+              ].filter(Boolean).join(' ')}
+            />
+          ))}
+        </div>
+      );
+    }
+
     const RING_R = 100;
     const RING_C = 2 * Math.PI * RING_R;
 
+    function getPhaseInfo(phase) {
+      if (phase === 'focus' || phase === 'focus_paused')
+        return { char: '🐰', label: '집중 시간! 📚', labelClass: '',              ringClass: 'ring-focus' };
+      if (phase === 'break' || phase === 'break_paused')
+        return { char: '🐶', label: '짧은 휴식! 🎵', labelClass: 'break-mode',    ringClass: 'ring-break' };
+      if (phase === 'longbreak' || phase === 'longbreak_paused')
+        return { char: '🦄', label: '긴 휴식! 🌈',   labelClass: 'longbreak-mode', ringClass: 'ring-longbreak' };
+      return { char: '', label: '', labelClass: '', ringClass: 'ring-focus' };
+    }
+
     function App() {
-      // 'setup' | 'focus' | 'focus_paused' | 'break' | 'break_paused' | 'waiting'
+      // phase: 'setup'|'focus'|'focus_paused'|'break'|'break_paused'|'longbreak'|'longbreak_paused'|'waiting'
       const [phase, setPhase] = useState('setup');
-      const [focusMin, setFocusMin] = useState(15);
-      const [breakMin, setBreakMin] = useState(3);
-      const [timeLeft, setTimeLeft] = useState(15 * 60);
-      const [totalSec, setTotalSec] = useState(15 * 60);
-      const [sessions, setSessions] = useState(() => loadSessions());
-      const [notif, setNotif] = useState(null); // { text, isBreak }
+      const [focusMin, setFocusMin] = useState(25);
+      const [breakMin, setBreakMin] = useState(5);
+      const [timeLeft, setTimeLeft] = useState(25 * 60);
+      const [totalSec, setTotalSec] = useState(25 * 60);
 
+      const init = loadPersistedState();
+      const [sessions,     setSessions]     = useState(init.sessions);
+      const [rounds,       setRounds]       = useState(init.rounds);
+      const [cycleInRound, setCycleInRound] = useState(init.cycleInRound);
+
+      const [notif, setNotif] = useState(null); // { emoji, text, kind }
       const notifTimer = useRef(null);
-      // refs to avoid stale closures in timer effect
-      const phaseRef = useRef(phase);
-      const sessionsRef = useRef(sessions);
-      const focusMinRef = useRef(focusMin);
-      const breakMinRef = useRef(breakMin);
-      phaseRef.current = phase;
-      sessionsRef.current = sessions;
-      focusMinRef.current = focusMin;
-      breakMinRef.current = breakMin;
 
-      const running = phase === 'focus' || phase === 'break';
+      const phaseRef        = useRef(phase);
+      const sessionsRef     = useRef(sessions);
+      const roundsRef       = useRef(rounds);
+      const cycleInRoundRef = useRef(cycleInRound);
+      const focusMinRef     = useRef(focusMin);
+      const breakMinRef     = useRef(breakMin);
+      phaseRef.current        = phase;
+      sessionsRef.current     = sessions;
+      roundsRef.current       = rounds;
+      cycleInRoundRef.current = cycleInRound;
+      focusMinRef.current     = focusMin;
+      breakMinRef.current     = breakMin;
 
-      // Countdown tick
+      const running = phase === 'focus' || phase === 'break' || phase === 'longbreak';
+
       useEffect(() => {
         if (!running || timeLeft <= 0) return;
         const id = setTimeout(() => setTimeLeft(t => t - 1), 1000);
         return () => clearTimeout(id);
       }, [running, timeLeft]);
 
-      // Timer completion
       useEffect(() => {
         if (!running || timeLeft !== 0) return;
-        const currentPhase = phaseRef.current;
+        const cur = phaseRef.current;
 
-        if (currentPhase === 'focus') {
-          playFocusEndSound();
-          const newCount = sessionsRef.current + 1;
-          setSessions(newCount);
-          saveSessions(newCount);
-          showNotif('휴식 시간! 🎉', false);
-          const bSec = breakMinRef.current * 60;
-          setTotalSec(bSec);
-          setTimeLeft(bSec);
-          setPhase('break');
-        } else if (currentPhase === 'break') {
+        if (cur === 'focus') {
+          const newSessions    = sessionsRef.current + 1;
+          const nextCycle      = (cycleInRoundRef.current + 1) % CYCLES_PER_ROUND;
+          const isRoundDone    = nextCycle === 0;
+          const newRounds      = isRoundDone ? roundsRef.current + 1 : roundsRef.current;
+
+          setSessions(newSessions);
+          setCycleInRound(nextCycle);
+          setRounds(newRounds);
+          persistState(newSessions, newRounds, nextCycle);
+
+          if (isRoundDone) {
+            playRoundCompleteSound();
+            const lbSec = LONG_BREAK_MIN * 60;
+            setTotalSec(lbSec); setTimeLeft(lbSec); setPhase('longbreak');
+            showNotif('🦄', '라운드 완료! 긴 휴식이에요! 🎊', 'longbreak');
+          } else {
+            playFocusEndSound();
+            const bSec = breakMinRef.current * 60;
+            setTotalSec(bSec); setTimeLeft(bSec); setPhase('break');
+            showNotif('🐶', '잠깐 쉬어요! 🎵', 'break');
+          }
+        } else if (cur === 'break') {
           playBreakEndSound();
-          showNotif('집중 시작! 📚', true);
           const fSec = focusMinRef.current * 60;
-          setTotalSec(fSec);
-          setTimeLeft(fSec);
-          setPhase('waiting');
+          setTotalSec(fSec); setTimeLeft(fSec); setPhase('waiting');
+          showNotif('🐰', '다시 집중 시간! 📚', 'focus');
+        } else if (cur === 'longbreak') {
+          playLongBreakEndSound();
+          const fSec = focusMinRef.current * 60;
+          setTotalSec(fSec); setTimeLeft(fSec); setPhase('waiting');
+          showNotif('🐰', '새 라운드 시작! 🚀', 'focus');
         }
       }, [timeLeft, running]); // eslint-disable-line
 
-      // Midnight reset check
       useEffect(() => {
         const id = setInterval(() => {
-          setSessions(loadSessions());
+          const s = loadPersistedState();
+          setSessions(s.sessions); setRounds(s.rounds); setCycleInRound(s.cycleInRound);
         }, 60_000);
         return () => clearInterval(id);
       }, []);
 
-      // Body background
       useEffect(() => {
-        const isBreak = phase === 'break' || phase === 'break_paused';
-        document.body.classList.toggle('break-bg', isBreak);
+        const isBreak     = phase === 'break'     || phase === 'break_paused';
+        const isLongBreak = phase === 'longbreak' || phase === 'longbreak_paused';
+        document.body.classList.toggle('break-bg',     isBreak);
+        document.body.classList.toggle('longbreak-bg', isLongBreak);
       }, [phase]);
 
-      function showNotif(text, isBreak) {
-        setNotif({ text, isBreak });
+      function showNotif(emoji, text, kind) {
+        setNotif({ emoji, text, kind });
         clearTimeout(notifTimer.current);
-        notifTimer.current = setTimeout(() => setNotif(null), 1500);
+        notifTimer.current = setTimeout(() => setNotif(null), 2200);
       }
 
       function handleStart() {
         const fSec = focusMin * 60;
-        setTotalSec(fSec);
-        setTimeLeft(fSec);
-        setPhase('focus');
+        setTotalSec(fSec); setTimeLeft(fSec); setPhase('focus');
       }
 
       function handlePause() {
-        setPhase(p => p === 'focus' ? 'focus_paused' : 'break_paused');
+        setPhase(p => p === 'focus' ? 'focus_paused' : p === 'break' ? 'break_paused' : 'longbreak_paused');
       }
 
       function handleResume() {
-        setPhase(p => p === 'focus_paused' ? 'focus' : 'break');
+        setPhase(p => p === 'focus_paused' ? 'focus' : p === 'break_paused' ? 'break' : 'longbreak');
       }
 
       function handleReset() {
         clearTimeout(notifTimer.current);
         setNotif(null);
         const fSec = focusMin * 60;
-        setTotalSec(fSec);
-        setTimeLeft(fSec);
-        setPhase('setup');
+        setTotalSec(fSec); setTimeLeft(fSec); setPhase('setup');
       }
 
-      const isBreakPhase = phase === 'break' || phase === 'break_paused';
-      const isFocusPhase = phase === 'focus' || phase === 'focus_paused';
-      const isRunningPhase = isFocusPhase || isBreakPhase;
+      const isFocusPhase     = phase === 'focus'     || phase === 'focus_paused';
+      const isBreakPhase     = phase === 'break'     || phase === 'break_paused';
+      const isLongBreakPhase = phase === 'longbreak' || phase === 'longbreak_paused';
+      const isRunningPhase   = isFocusPhase || isBreakPhase || isLongBreakPhase;
 
-      const progress = totalSec > 0 ? timeLeft / totalSec : 1;
-      const dashOffset = RING_C * (1 - progress);
+      const progress    = totalSec > 0 ? timeLeft / totalSec : 1;
+      const dashOffset  = RING_C * (1 - progress);
+      const phaseInfo   = getPhaseInfo(phase);
 
       return (
         <div className="app">
           <div className="app-title">🍅 뽀모도로 타이머</div>
+
+          <RoundDots cycleInRound={cycleInRound} isLongBreak={isLongBreakPhase} />
 
           {/* ── Setup / Waiting ── */}
           {(phase === 'setup' || phase === 'waiting') && (
@@ -460,6 +628,7 @@
                     aria-label="휴식 시간 늘리기"
                   >+</button>
                 </div>
+                <div className="setting-hint">긴 휴식 15분 — 집중 4회 후 자동 전환</div>
               </div>
 
               {phase === 'waiting' && (
@@ -467,16 +636,21 @@
               )}
 
               <button className="btn btn-start" onClick={handleStart}>
-                {phase === 'waiting' ? '다시 시작! 🚀' : '시작! 🚀'}
+                {phase === 'waiting' ? '다시 집중! 🐰' : '시작! 🚀'}
               </button>
             </>
           )}
 
-          {/* ── Focus / Break running or paused ── */}
+          {/* ── Focus / Break / LongBreak (running or paused) ── */}
           {isRunningPhase && (
             <>
-              <div className={`mode-label${isBreakPhase ? ' break-mode' : ''}`}>
-                {isBreakPhase ? '휴식 시간! 🎉' : '집중 시간! 📚'}
+              {isLongBreakPhase && (
+                <div className="longbreak-chip">긴 휴식 — 15분</div>
+              )}
+
+              <div className="mode-row">
+                <span className="mode-character" aria-hidden="true">{phaseInfo.char}</span>
+                <span className={`mode-label ${phaseInfo.labelClass}`}>{phaseInfo.label}</span>
               </div>
 
               <div className="timer-ring-wrap">
@@ -488,7 +662,7 @@
                 >
                   <circle className="ring-bg" cx="120" cy="120" r={RING_R} />
                   <circle
-                    className={`ring-track ${isBreakPhase ? 'ring-break' : 'ring-focus'}`}
+                    className={`ring-track ${phaseInfo.ringClass}`}
                     cx="120" cy="120" r={RING_R}
                     strokeDasharray={RING_C}
                     strokeDashoffset={dashOffset}
@@ -516,7 +690,10 @@
             </>
           )}
 
-          {/* ── Session count ── */}
+          {rounds > 0 && (
+            <div className="rounds-row">🦄 완료한 라운드: {rounds}회</div>
+          )}
+
           <div className="sessions">
             <div className="sessions-label">오늘 완료한 세션</div>
             <div className="tomatoes">
@@ -524,11 +701,11 @@
             </div>
           </div>
 
-          {/* ── Notification overlay ── */}
           {notif && (
             <div className="notif-overlay">
-              <div className={`notif-box${notif.isBreak ? ' break-notif' : ''}`}>
-                {notif.text}
+              <div className={`notif-box${notif.kind === 'break' ? ' break-notif' : notif.kind === 'longbreak' ? ' longbreak-notif' : ''}`}>
+                <span className="notif-emoji">{notif.emoji}</span>
+                <div className="notif-text">{notif.text}</div>
               </div>
             </div>
           )}
