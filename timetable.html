@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>📅 시간표</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 50%, #ddd6fe 100%);
+      font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+      padding: 20px;
+    }
+
+    .app {
+      max-width: 700px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 28px;
+      padding: 24px 20px 32px;
+      box-shadow: 0 16px 60px rgba(100, 100, 200, 0.15);
+    }
+
+    .app-title {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: #4338ca;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+
+    .app-subtitle {
+      font-size: 0.88rem;
+      color: #94a3b8;
+      text-align: center;
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+
+    /* ── Timetable grid ── */
+    .timetable-grid {
+      display: grid;
+      grid-template-columns: 32px repeat(5, 1fr);
+      gap: 5px;
+    }
+
+    .grid-corner { /* empty top-left cell */ }
+
+    .day-header {
+      background: #4338ca;
+      color: #fff;
+      border-radius: 10px;
+      padding: 8px 4px;
+      text-align: center;
+      font-size: 0.92rem;
+      font-weight: 800;
+    }
+
+    .day-header.today {
+      background: #7c3aed;
+      box-shadow: 0 2px 10px rgba(124, 58, 237, 0.45);
+    }
+
+    .period-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: #94a3b8;
+    }
+
+    /* ── Subject cell ── */
+    .subject-cell {
+      border-radius: 10px;
+      padding: 6px 4px;
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.12s, box-shadow 0.12s;
+      font-family: inherit;
+      width: 100%;
+    }
+
+    .subject-cell:hover  { transform: scale(1.05); box-shadow: 0 4px 14px rgba(0,0,0,0.14); }
+    .subject-cell:active { transform: scale(0.97); }
+
+    .subject-cell.empty {
+      background: #f1f5f9;
+      outline: 2px dashed #cbd5e1;
+    }
+    .subject-cell.empty:hover { outline-color: #94a3b8; }
+
+    .subject-cell.today-col { outline-offset: 2px; }
+    .subject-cell.empty.today-col { outline: 2px dashed #7c3aed; }
+    .subject-cell.filled.today-col { outline: 2px solid #7c3aed; outline-offset: 1px; }
+
+    .cell-name {
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.28);
+      word-break: keep-all;
+      text-align: center;
+      line-height: 1.25;
+    }
+
+    .cell-plus {
+      font-size: 1.3rem;
+      color: #cbd5e1;
+      line-height: 1;
+    }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 200;
+    }
+
+    @media (min-width: 480px) {
+      .modal-overlay { align-items: center; }
+    }
+
+    .modal-sheet {
+      background: #fff;
+      border-radius: 28px 28px 0 0;
+      padding: 28px 24px 36px;
+      width: 100%;
+      max-width: 420px;
+      animation: slideUp 0.22s ease-out;
+    }
+
+    @media (min-width: 480px) {
+      .modal-sheet { border-radius: 28px; }
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(40px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 900;
+      color: #1e293b;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.84rem;
+      font-weight: 800;
+      color: #64748b;
+      margin-bottom: 8px;
+    }
+
+    /* ── Name input ── */
+    .name-input-wrap {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .name-input {
+      width: 100%;
+      padding: 14px 52px 14px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 14px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #1e293b;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+
+    .name-input:focus { border-color: #4338ca; }
+    .name-input.error { border-color: #ef4444; }
+
+    .name-counter {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #94a3b8;
+      pointer-events: none;
+    }
+
+    .name-counter.warn { color: #ef4444; }
+
+    .name-error {
+      font-size: 0.78rem;
+      color: #ef4444;
+      font-weight: 700;
+      margin-top: -14px;
+      margin-bottom: 14px;
+    }
+
+    /* ── Color palette ── */
+    .palette-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .palette-swatch {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 3px solid transparent;
+      transition: transform 0.1s, border-color 0.12s, box-shadow 0.12s;
+      padding: 0;
+    }
+
+    .palette-swatch:hover { transform: scale(1.12); }
+
+    .palette-swatch.selected {
+      border-color: #1e293b;
+      transform: scale(1.18);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.22);
+    }
+
+    /* ── Modal action buttons ── */
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-modal {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 14px;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      min-height: 52px;
+      min-width: 44px;
+      transition: transform 0.1s, opacity 0.15s;
+      font-family: inherit;
+    }
+
+    .btn-modal:hover:not(:disabled)  { transform: translateY(-1px); }
+    .btn-modal:active:not(:disabled) { transform: translateY(0); }
+    .btn-modal:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-cancel { background: #f1f5f9; color: #64748b; }
+    .btn-save   { background: #4338ca; color: #fff; }
+    .btn-clear  { background: #fee2e2; color: #dc2626; flex: 0.65; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    // ── Constants ────────────────────────────────────────────────────────────
+    const TIMETABLE_KEY = 'timetable_v1';
+    const DAYS    = ['월', '화', '수', '목', '금'];
+    const PERIODS = [1, 2, 3, 4, 5, 6, 7];
+
+    // 12 pre-defined colour palette (FR-015)
+    const PALETTE = [
+      '#FF6B6B', // 빨강
+      '#FF9F43', // 주황
+      '#FECA57', // 노랑
+      '#A3CB38', // 연두
+      '#1DD1A1', // 민트
+      '#48DBFB', // 하늘
+      '#54A0FF', // 파랑
+      '#5352ED', // 남색
+      '#5F27CD', // 보라
+      '#FF9FF3', // 분홍
+      '#FFAF87', // 살구
+      '#C8D6E5', // 연회색
+    ];
+
+    // ── Storage helpers ───────────────────────────────────────────────────────
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(TIMETABLE_KEY);
+        return raw ? JSON.parse(raw) : { subjects: {}, slots: {} };
+      } catch { return { subjects: {}, slots: {} }; }
+    }
+
+    function saveData(data) {
+      try { localStorage.setItem(TIMETABLE_KEY, JSON.stringify(data)); } catch {}
+    }
+
+    function genId() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    }
+
+    function slotKey(day, period) { return `${day}_${period}`; }
+
+    // Monday=1 … Friday=5; 0 on weekends
+    function getTodayDayIndex() {
+      const d = new Date().getDay();
+      return d >= 1 && d <= 5 ? d : 0;
+    }
+
+    // ── SubjectModal ─────────────────────────────────────────────────────────
+    function SubjectModal({ day, period, initialName, initialColor, onSave, onClear, onClose }) {
+      const [name,    setName]    = useState(initialName  || '');
+      const [color,   setColor]   = useState(initialColor || PALETTE[0]);
+      const [touched, setTouched] = useState(false);
+
+      const dayLabel   = DAYS[day - 1];
+      const hasExisting = !!initialName;
+      const nameError   = touched && name.trim() === '' ? '과목명을 입력해 주세요.' : null;
+
+      function handleSave() {
+        setTouched(true);
+        if (name.trim() === '') return;
+        onSave(name.trim(), color);
+      }
+
+      function handleNameChange(e) {
+        const v = e.target.value;
+        if (v.length <= 10) setName(v);
+      }
+
+      function handleOverlayClick(e) {
+        if (e.target === e.currentTarget) onClose();
+      }
+
+      return (
+        <div className="modal-overlay" onClick={handleOverlayClick}>
+          <div className="modal-sheet" role="dialog" aria-modal="true" aria-label="과목 등록">
+            <div className="modal-title">
+              {dayLabel}요일 {period}교시 과목 {hasExisting ? '수정' : '등록'}
+            </div>
+
+            <label className="form-label" htmlFor="subject-name-input">과목명 (최대 10자)</label>
+            <div className="name-input-wrap">
+              <input
+                id="subject-name-input"
+                className={`name-input${nameError ? ' error' : ''}`}
+                type="text"
+                value={name}
+                onChange={handleNameChange}
+                onBlur={() => setTouched(true)}
+                placeholder="예: 수학, 국어, 체육"
+                maxLength={10}
+                autoFocus
+              />
+              <span className={`name-counter${name.length >= 9 ? ' warn' : ''}`}>
+                {name.length}/10
+              </span>
+            </div>
+            {nameError && <p className="name-error">{nameError}</p>}
+
+            <label className="form-label">색상</label>
+            <div className="palette-grid">
+              {PALETTE.map(c => (
+                <button
+                  key={c}
+                  type="button"
+                  className={`palette-swatch${color === c ? ' selected' : ''}`}
+                  style={{ background: c }}
+                  onClick={() => setColor(c)}
+                  aria-label={`색상 선택`}
+                  aria-pressed={color === c}
+                />
+              ))}
+            </div>
+
+            <div className="modal-actions">
+              <button type="button" className="btn-modal btn-cancel" onClick={onClose}>취소</button>
+              {hasExisting && (
+                <button type="button" className="btn-modal btn-clear" onClick={onClear}>비우기</button>
+              )}
+              <button type="button" className="btn-modal btn-save" onClick={handleSave}>저장</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── SubjectCell ──────────────────────────────────────────────────────────
+    function SubjectCell({ day, period, subject, isToday, onClick }) {
+      const filled = !!subject;
+      const classes = [
+        'subject-cell',
+        filled   ? 'filled' : 'empty',
+        isToday  ? 'today-col' : '',
+      ].filter(Boolean).join(' ');
+
+      const dayLabel = DAYS[day - 1];
+      const ariaLabel = filled
+        ? `${dayLabel}요일 ${period}교시: ${subject.name}`
+        : `${dayLabel}요일 ${period}교시 (비어있음) — 과목 등록`;
+
+      return (
+        <button
+          type="button"
+          className={classes}
+          style={filled ? { background: subject.colorHex } : undefined}
+          onClick={onClick}
+          aria-label={ariaLabel}
+        >
+          {filled
+            ? <span className="cell-name">{subject.name}</span>
+            : <span className="cell-plus" aria-hidden="true">+</span>
+          }
+        </button>
+      );
+    }
+
+    // ── App ──────────────────────────────────────────────────────────────────
+    function App() {
+      const [data,  setData]  = useState(() => loadData());
+      const [modal, setModal] = useState(null); // { day, period } | null
+      const todayDay = getTodayDayIndex();
+
+      function getSubjectForSlot(day, period) {
+        const slot = data.slots[slotKey(day, period)];
+        if (!slot?.subjectId) return null;
+        return data.subjects[slot.subjectId] ?? null;
+      }
+
+      function handleSave(day, period, name, colorHex) {
+        setData(prev => {
+          const key      = slotKey(day, period);
+          const subjects = { ...prev.subjects };
+          const slots    = { ...prev.slots };
+
+          // Remove previously linked subject (1-to-1 slot→subject)
+          const oldSlot = slots[key];
+          if (oldSlot?.subjectId) delete subjects[oldSlot.subjectId];
+
+          const subjectId = genId();
+          subjects[subjectId] = { id: subjectId, name, colorHex };
+          slots[key] = { dayOfWeek: day, period, subjectId };
+
+          const next = { subjects, slots };
+          saveData(next);
+          return next;
+        });
+        setModal(null);
+      }
+
+      function handleClear(day, period) {
+        setData(prev => {
+          const key      = slotKey(day, period);
+          const subjects = { ...prev.subjects };
+          const slots    = { ...prev.slots };
+
+          const oldSlot = slots[key];
+          if (oldSlot?.subjectId) delete subjects[oldSlot.subjectId];
+          delete slots[key];
+
+          const next = { subjects, slots };
+          saveData(next);
+          return next;
+        });
+        setModal(null);
+      }
+
+      const openSlot    = modal;
+      const openSubject = openSlot ? getSubjectForSlot(openSlot.day, openSlot.period) : null;
+
+      return (
+        <div className="app">
+          <div className="app-title">📅 시간표</div>
+          <div className="app-subtitle">월~금 · 1~7교시 · 과목명·색상 등록</div>
+
+          <div className="timetable-grid" role="grid" aria-label="주간 시간표">
+            {/* Header row */}
+            <div className="grid-corner" role="presentation" />
+            {DAYS.map((d, i) => (
+              <div
+                key={i}
+                className={`day-header${todayDay === i + 1 ? ' today' : ''}`}
+                role="columnheader"
+              >
+                {d}
+              </div>
+            ))}
+
+            {/* Period rows */}
+            {PERIODS.map(period => (
+              <React.Fragment key={period}>
+                <div className="period-label" role="rowheader">{period}</div>
+                {DAYS.map((_, di) => {
+                  const day = di + 1;
+                  return (
+                    <SubjectCell
+                      key={day}
+                      day={day}
+                      period={period}
+                      subject={getSubjectForSlot(day, period)}
+                      isToday={day === todayDay}
+                      onClick={() => setModal({ day, period })}
+                    />
+                  );
+                })}
+              </React.Fragment>
+            ))}
+          </div>
+
+          {openSlot && (
+            <SubjectModal
+              day={openSlot.day}
+              period={openSlot.period}
+              initialName={openSubject?.name  || ''}
+              initialColor={openSubject?.colorHex || PALETTE[0]}
+              onSave={(name, color) => handleSave(openSlot.day, openSlot.period, name, color)}
+              onClear={() => handleClear(openSlot.day, openSlot.period)}
+              onClose={() => setModal(null)}
+            />
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
