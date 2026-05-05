@@ -443,6 +443,169 @@
     }
     .btn-send-report:hover:not(:disabled) { background: #fff5f0; transform: translateY(-1px); }
     .btn-send-report:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Supply Management (준비물 관리, POMO-27) ── */
+    .supply-section {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 2px dashed #f5d8d0;
+    }
+
+    .supply-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      padding: 4px 0;
+      user-select: none;
+    }
+
+    .supply-title {
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .supply-count-chip {
+      font-size: 0.75rem;
+      font-weight: 800;
+      background: #f3e8ff;
+      color: #7c3aed;
+      border-radius: 999px;
+      padding: 2px 9px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .supply-list {
+      list-style: none;
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .supply-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #fafafa;
+      border-radius: 12px;
+      padding: 10px 12px;
+      border: 1px solid #f0e8e8;
+    }
+
+    .supply-item.supply-done {
+      background: #f6ffed;
+      border-color: #b7eb8f;
+    }
+
+    .supply-checkbox {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: 2px solid #ff8c6b;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s, border-color 0.15s;
+      font-size: 1rem;
+      font-weight: 900;
+      color: #fff;
+    }
+
+    .supply-item.supply-done .supply-checkbox {
+      background: #52c41a;
+      border-color: #52c41a;
+    }
+
+    .supply-name {
+      flex: 1;
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #333;
+      text-align: left;
+    }
+
+    .supply-item.supply-done .supply-name {
+      color: #8c8c8c;
+      text-decoration: line-through;
+    }
+
+    .supply-delete-btn {
+      background: none;
+      border: none;
+      color: #ccc;
+      font-size: 0.85rem;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      min-width: 28px;
+      min-height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.12s, background 0.12s;
+    }
+
+    .supply-delete-btn:hover { color: #ff4d4f; background: #fff0ee; }
+
+    .supply-input-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .supply-input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 2px solid #f0e8e8;
+      border-radius: 14px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: #333;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+
+    .supply-input:focus { border-color: #ff8c6b; }
+
+    .supply-add-btn {
+      background: #ff8c6b;
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-size: 0.88rem;
+      font-weight: 800;
+      padding: 10px 16px;
+      cursor: pointer;
+      min-width: 56px;
+      min-height: 44px;
+      transition: transform 0.1s, opacity 0.15s;
+    }
+
+    .supply-add-btn:hover:not(:disabled) { transform: scale(1.04); }
+    .supply-add-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .supply-empty {
+      font-size: 0.88rem;
+      color: #ccc;
+      padding: 8px 0;
+    }
+
+    .supply-limit-msg {
+      font-size: 0.78rem;
+      color: #ff8c6b;
+      font-weight: 700;
+      margin-top: 6px;
+      text-align: left;
+    }
   </style>
 </head>
 <body>
@@ -554,6 +717,135 @@
       const m = Math.floor(seconds / 60);
       const s = seconds % 60;
       return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+
+    // ── Supply Management (POMO-27: 준비물 관리) ──────────────────────
+    const SUPPLY_KEY = 'pomodoro_supplies_v1';
+    const SUPPLY_MAX = 10;
+
+    function loadSupplies() {
+      try {
+        const raw = localStorage.getItem(SUPPLY_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch { return []; }
+    }
+
+    function saveSupplies(items) {
+      try { localStorage.setItem(SUPPLY_KEY, JSON.stringify(items)); } catch {}
+    }
+
+    function SupplyPanel() {
+      const [items, setItems] = React.useState(() => loadSupplies());
+      const [expanded, setExpanded] = React.useState(true);
+      const [inputVal, setInputVal] = React.useState('');
+      const inputRef = React.useRef(null);
+      const today = getTodayStr();
+
+      const checkedCount = items.filter(i => i.checkedDate === today).length;
+      const atLimit = items.length >= SUPPLY_MAX;
+
+      function save(newItems) {
+        setItems(newItems);
+        saveSupplies(newItems);
+      }
+
+      function handleToggle(id) {
+        save(items.map(i =>
+          i.id === id ? { ...i, checkedDate: i.checkedDate === today ? null : today } : i
+        ));
+      }
+
+      function handleDelete(id) {
+        save(items.filter(i => i.id !== id));
+      }
+
+      function handleAdd() {
+        const name = inputVal.trim();
+        if (!name || atLimit) return;
+        const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+        save([...items, { id, name, checkedDate: null }]);
+        setInputVal('');
+        inputRef.current && inputRef.current.focus();
+      }
+
+      function handleKeyDown(e) {
+        if (e.key === 'Enter') handleAdd();
+      }
+
+      return (
+        <div className="supply-section">
+          <div
+            className="supply-header"
+            onClick={() => setExpanded(e => !e)}
+            role="button"
+            tabIndex={0}
+            aria-expanded={expanded}
+            onKeyDown={e => e.key === 'Enter' && setExpanded(x => !x)}
+          >
+            <span className="supply-title">
+              준비물 🎒
+              {items.length > 0 && (
+                <span className="supply-count-chip">{checkedCount}/{items.length}</span>
+              )}
+            </span>
+            <span className="ops-toggle-btn" aria-hidden="true">{expanded ? '▲' : '▼'}</span>
+          </div>
+          {expanded && (
+            <>
+              {items.length === 0 ? (
+                <div className="supply-empty">준비물을 추가해보세요 ✏️</div>
+              ) : (
+                <ul className="supply-list" aria-label="준비물 목록">
+                  {items.map(item => {
+                    const done = item.checkedDate === today;
+                    return (
+                      <li key={item.id} className={`supply-item${done ? ' supply-done' : ''}`}>
+                        <button
+                          className="supply-checkbox"
+                          onClick={() => handleToggle(item.id)}
+                          aria-label={done ? `${item.name} 체크 해제` : `${item.name} 챙겼어요`}
+                          aria-pressed={done}
+                        >
+                          {done ? '✓' : ''}
+                        </button>
+                        <span className="supply-name">{item.name}</span>
+                        <button
+                          className="supply-delete-btn"
+                          onClick={() => handleDelete(item.id)}
+                          aria-label={`${item.name} 삭제`}
+                        >✕</button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {atLimit ? (
+                <div className="supply-limit-msg">최대 {SUPPLY_MAX}개까지 등록할 수 있어요</div>
+              ) : (
+                <div className="supply-input-row">
+                  <input
+                    ref={inputRef}
+                    className="supply-input"
+                    type="text"
+                    placeholder="준비물 입력 (예: 체육복)"
+                    value={inputVal}
+                    maxLength={20}
+                    onChange={e => setInputVal(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    aria-label="새 준비물 입력"
+                  />
+                  <button
+                    className="supply-add-btn"
+                    onClick={handleAdd}
+                    disabled={!inputVal.trim()}
+                    aria-label="준비물 추가"
+                  >추가</button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      );
     }
 
     // ── Operation Log (NFR-001: 운영 추적성과 재시도 가능성) ──────────
@@ -990,6 +1282,9 @@
               </button>
             )}
           </div>
+
+          {/* ── Supply management (POMO-27) ── */}
+          <SupplyPanel />
 
           {/* ── Ops log (NFR-001) ── */}
           <OpsLogPanel
