@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>📅 시간표</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(160deg, #e8f4fd 0%, #d0eaff 100%);
+      font-family: 'Apple SD Gothic Neo', 'Segoe UI', sans-serif;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #4facfe 0%, #00c6fb 100%);
+      padding: 20px 16px 16px;
+      text-align: center;
+      box-shadow: 0 4px 16px rgba(79, 172, 254, 0.35);
+    }
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+    .header-sub {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.85);
+      margin-top: 4px;
+      font-weight: 700;
+    }
+
+    /* ── Grid ── */
+    .grid-wrap {
+      overflow-x: auto;
+      padding: 16px 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .grid {
+      display: grid;
+      /* period-label column + 5 day columns */
+      grid-template-columns: 52px repeat(5, 1fr);
+      gap: 4px;
+      min-width: 340px;
+    }
+
+    /* header cells */
+    .cell-corner {
+      height: 40px;
+    }
+    .cell-day {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      font-weight: 900;
+      border-radius: 10px;
+      background: #fff;
+      color: #555;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+    }
+    .cell-day.today {
+      background: linear-gradient(135deg, #4facfe 0%, #00c6fb 100%);
+      color: #fff;
+      box-shadow: 0 3px 10px rgba(79,172,254,0.45);
+    }
+
+    /* period labels */
+    .cell-period {
+      height: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+    }
+    .period-num {
+      font-size: 0.75rem;
+      font-weight: 900;
+      color: #777;
+    }
+    .period-time {
+      font-size: 0.6rem;
+      color: #bbb;
+      font-weight: 700;
+      line-height: 1.2;
+      text-align: center;
+    }
+
+    /* subject cells */
+    .cell-subject {
+      height: 60px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: #fff;
+      cursor: pointer;
+      text-align: center;
+      padding: 4px;
+      line-height: 1.3;
+      transition: transform 0.12s, box-shadow 0.12s;
+      min-width: 44px;
+      min-height: 44px;
+      border: none;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cell-subject:focus-visible {
+      outline: 3px solid #4facfe;
+      outline-offset: 2px;
+    }
+    .cell-subject.filled:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.18); }
+    .cell-subject.filled:active { transform: scale(0.97); }
+    .cell-subject.empty {
+      background: rgba(200,220,240,0.35);
+      color: #c0cfe0;
+      border: 2px dashed rgba(150,190,230,0.5);
+    }
+    .cell-subject.empty:hover { background: rgba(200,220,240,0.55); }
+
+    /* ── Edit modal ── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 100;
+      padding: 0 0 env(safe-area-inset-bottom);
+    }
+    .sheet {
+      background: #fff;
+      border-radius: 24px 24px 0 0;
+      padding: 24px 20px 32px;
+      width: 100%;
+      max-width: 480px;
+      animation: slideUp 0.22s ease-out;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+    .sheet-title {
+      font-size: 1rem;
+      font-weight: 900;
+      color: #1a1a2e;
+      margin-bottom: 4px;
+    }
+    .sheet-sub {
+      font-size: 0.8rem;
+      color: #999;
+      margin-bottom: 20px;
+    }
+
+    /* subject name input */
+    .subject-input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2.5px solid #e0eaf5;
+      border-radius: 14px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #1a1a2e;
+      outline: none;
+      transition: border-color 0.15s;
+      margin-bottom: 16px;
+    }
+    .subject-input:focus { border-color: #4facfe; }
+    .char-count {
+      font-size: 0.75rem;
+      color: #bbb;
+      text-align: right;
+      margin-top: -12px;
+      margin-bottom: 16px;
+    }
+    .char-count.warn { color: #f59e0b; }
+
+    /* color palette */
+    .palette-label {
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: #777;
+      margin-bottom: 10px;
+    }
+    .palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .swatch {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: 3px solid transparent;
+      cursor: pointer;
+      transition: transform 0.12s, border-color 0.12s;
+    }
+    .swatch:hover { transform: scale(1.15); }
+    .swatch.selected { border-color: #1a1a2e; transform: scale(1.15); }
+
+    /* buttons */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+    }
+    .btn {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 16px;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      min-height: 52px;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-save {
+      background: linear-gradient(135deg, #4facfe 0%, #00c6fb 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(79,172,254,0.4);
+    }
+    .btn-save:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-clear {
+      background: #f5f5f5;
+      color: #888;
+    }
+    .btn-cancel {
+      background: #f5f5f5;
+      color: #888;
+    }
+
+    /* legend */
+    .legend {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 12px;
+      font-size: 0.75rem;
+      color: #888;
+      font-weight: 700;
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .legend-item { display: flex; align-items: center; gap: 5px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useRef, useEffect } = React;
+
+    /* ── Schedule constants (한국 초등학교 기준) ── */
+    const DAYS = ['월', '화', '수', '목', '금'];   // dayOfWeek 1~5
+
+    /* 1~7교시 */
+    const PERIOD_SCHEDULE = [
+      { period: 1, label: '1교시', start: [9,  0],  end: [9,  40] },
+      { period: 2, label: '2교시', start: [9,  50], end: [10, 30] },
+      { period: 3, label: '3교시', start: [10, 40], end: [11, 20] },
+      { period: 4, label: '4교시', start: [11, 30], end: [12, 10] },
+      { period: 5, label: '5교시', start: [13, 10], end: [13, 50] },
+      { period: 6, label: '6교시', start: [14,  0], end: [14, 40] },
+      { period: 7, label: '7교시', start: [14, 50], end: [15, 30] },
+    ];
+
+    const MAX_SUBJECT_LEN = 10;
+    const STORAGE_KEY = 'timetable_v1';
+
+    /* 12-color subject palette */
+    const PALETTE = [
+      '#FF6B6B', '#FF9A5C', '#F7B731', '#A8E063',
+      '#26de81', '#4ECDC4', '#45B7D1', '#4facfe',
+      '#a29bfe', '#DDA0DD', '#fd79a8', '#b2bec3',
+    ];
+
+    /* ── Data model ── */
+    /* slot key: "${dayIndex}-${period}"  (dayIndex 0~4, period 1~7) */
+    /* slot value: { name: string, color: string } | null            */
+
+    function loadSlots() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : {};
+      } catch { return {}; }
+    }
+
+    function saveSlots(slots) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(slots)); } catch {}
+    }
+
+    /* Today's day index (0=Mon … 4=Fri), null on weekends */
+    function getTodayIndex() {
+      const d = new Date().getDay();
+      return (d === 0 || d === 6) ? null : d - 1;
+    }
+
+    /* ── Edit sheet ── */
+    function EditSheet({ dayIdx, period, initial, onSave, onClear, onClose }) {
+      const [name, setName] = useState(initial?.name || '');
+      const [color, setColor] = useState(initial?.color || PALETTE[0]);
+      const inputRef = useRef(null);
+
+      useEffect(() => { inputRef.current?.focus(); }, []);
+
+      function handleNameChange(e) {
+        if (e.target.value.length <= MAX_SUBJECT_LEN) setName(e.target.value);
+      }
+
+      const dayLabel = DAYS[dayIdx] + '요일';
+      const periodLabel = PERIOD_SCHEDULE[period - 1].label;
+      const canSave = name.trim().length > 0;
+
+      return (
+        <div
+          className="overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${dayLabel} ${periodLabel} 과목 편집`}
+          onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+        >
+          <div className="sheet">
+            <div className="sheet-title">{dayLabel} {periodLabel}</div>
+            <div className="sheet-sub">과목명을 입력하고 색상을 선택하세요.</div>
+
+            <input
+              ref={inputRef}
+              className="subject-input"
+              type="text"
+              value={name}
+              onChange={handleNameChange}
+              placeholder="과목명 (예: 국어, 수학)"
+              maxLength={MAX_SUBJECT_LEN}
+              aria-label="과목명"
+            />
+            <div className={`char-count ${name.length >= MAX_SUBJECT_LEN - 2 ? 'warn' : ''}`}>
+              {name.length}/{MAX_SUBJECT_LEN}
+            </div>
+
+            <div className="palette-label">색상 선택</div>
+            <div className="palette" role="radiogroup" aria-label="과목 색상">
+              {PALETTE.map(c => (
+                <button
+                  key={c}
+                  className={`swatch ${color === c ? 'selected' : ''}`}
+                  style={{ background: c }}
+                  onClick={() => setColor(c)}
+                  aria-label={`색상 ${c}`}
+                  aria-pressed={color === c}
+                />
+              ))}
+            </div>
+
+            <div className="btn-row">
+              {initial && (
+                <button className="btn btn-clear" onClick={onClear} aria-label="교시 비우기">
+                  비우기
+                </button>
+              )}
+              <button className="btn btn-cancel" onClick={onClose}>취소</button>
+              <button
+                className="btn btn-save"
+                onClick={() => onSave({ name: name.trim(), color })}
+                disabled={!canSave}
+              >
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── Timetable grid ── */
+    function TimetableGrid({ slots, todayIdx, onCellClick }) {
+      return (
+        <div className="grid-wrap">
+          <div className="grid" role="grid" aria-label="주간 시간표">
+
+            {/* Corner */}
+            <div className="cell-corner" role="presentation" />
+
+            {/* Day headers */}
+            {DAYS.map((day, di) => (
+              <div
+                key={day}
+                className={`cell-day${di === todayIdx ? ' today' : ''}`}
+                role="columnheader"
+                aria-label={`${day}요일${di === todayIdx ? ' (오늘)' : ''}`}
+              >
+                {day}
+                {di === todayIdx && <span style={{ fontSize: '0.55rem', marginLeft: '3px', verticalAlign: 'super' }}>오늘</span>}
+              </div>
+            ))}
+
+            {/* Period rows (1~7) */}
+            {PERIOD_SCHEDULE.map(({ period, label, start, end }) => {
+              const timeStr = `${start[0]}:${String(start[1]).padStart(2,'0')}~${end[0]}:${String(end[1]).padStart(2,'0')}`;
+              return (
+                <React.Fragment key={period}>
+                  <div className="cell-period" role="rowheader">
+                    <span className="period-num">{label}</span>
+                    <span className="period-time">{timeStr}</span>
+                  </div>
+
+                  {DAYS.map((day, di) => {
+                    const key = `${di}-${period}`;
+                    const slot = slots[key] || null;
+                    return (
+                      <button
+                        key={key}
+                        className={`cell-subject ${slot ? 'filled' : 'empty'}`}
+                        style={slot ? { background: slot.color } : {}}
+                        onClick={() => onCellClick(di, period)}
+                        role="gridcell"
+                        aria-label={
+                          slot
+                            ? `${day}요일 ${label}: ${slot.name}`
+                            : `${day}요일 ${label}: 빈 교시`
+                        }
+                      >
+                        {slot ? slot.name : '+'}
+                      </button>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    /* ── App ── */
+    function App() {
+      const [slots, setSlots] = useState(() => loadSlots());
+      const [editing, setEditing] = useState(null); // { dayIdx, period }
+      const todayIdx = getTodayIndex();
+
+      function handleCellClick(dayIdx, period) {
+        setEditing({ dayIdx, period });
+      }
+
+      function handleSave({ name, color }) {
+        const key = `${editing.dayIdx}-${editing.period}`;
+        const next = { ...slots, [key]: { name, color } };
+        setSlots(next);
+        saveSlots(next);
+        setEditing(null);
+      }
+
+      function handleClear() {
+        const key = `${editing.dayIdx}-${editing.period}`;
+        const next = { ...slots };
+        delete next[key];
+        setSlots(next);
+        saveSlots(next);
+        setEditing(null);
+      }
+
+      const editingSlot = editing
+        ? (slots[`${editing.dayIdx}-${editing.period}`] || null)
+        : null;
+
+      return (
+        <div>
+          <header className="header">
+            <div className="header-title">📅 내 시간표</div>
+            <div className="header-sub">
+              월~금 · 1~7교시 — 셀을 탭해 과목을 등록하세요
+            </div>
+          </header>
+
+          <TimetableGrid
+            slots={slots}
+            todayIdx={todayIdx}
+            onCellClick={handleCellClick}
+          />
+
+          <div className="legend">
+            <div className="legend-item">
+              <div className="legend-dot" style={{ background: '#4facfe' }} />
+              오늘
+            </div>
+            <div className="legend-item">
+              <div className="legend-dot" style={{ background: '#ccc', border: '1.5px dashed #aad' }} />
+              빈 교시
+            </div>
+          </div>
+
+          {editing && (
+            <EditSheet
+              dayIdx={editing.dayIdx}
+              period={editing.period}
+              initial={editingSlot}
+              onSave={handleSave}
+              onClear={handleClear}
+              onClose={() => setEditing(null)}
+            />
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
