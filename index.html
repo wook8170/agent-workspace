@@ -562,7 +562,9 @@
     function loadOpsLog() {
       try {
         const raw = localStorage.getItem(OPS_LOG_KEY);
-        return raw ? JSON.parse(raw) : [];
+        const log = raw ? JSON.parse(raw) : [];
+        // retrying 상태는 앱 재시작 시 failed로 복원 (새로고침 고착 방지)
+        return log.map(e => e.status === 'retrying' ? { ...e, status: 'failed' } : e);
       } catch { return []; }
     }
 
