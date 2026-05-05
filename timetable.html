@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>📅 내 시간표</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      font-family: 'Apple SD Gothic Neo', 'Nanum Gothic', 'Segoe UI', sans-serif;
+      background: linear-gradient(160deg, #fef9c3 0%, #fde68a 40%, #fbbf24 100%);
+    }
+
+    #root { min-height: 100vh; }
+
+    /* ── 공통 ── */
+    .screen {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 20px 40px;
+    }
+
+    .app-logo {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+
+    .app-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: #92400e;
+      margin-bottom: 4px;
+      letter-spacing: -0.5px;
+    }
+
+    .app-subtitle {
+      font-size: 15px;
+      color: #b45309;
+      margin-bottom: 32px;
+    }
+
+    /* ── 온보딩 ── */
+    .onboarding-card {
+      background: #fff;
+      border-radius: 24px;
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    }
+
+    .step-indicator {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      justify-content: center;
+    }
+
+    .step-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #e5e7eb;
+      transition: background 0.3s;
+    }
+
+    .step-dot.active {
+      background: #f59e0b;
+      width: 28px;
+      border-radius: 5px;
+    }
+
+    .step-dot.done {
+      background: #10b981;
+    }
+
+    .step-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #6b7280;
+      text-align: center;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .step-question {
+      font-size: 22px;
+      font-weight: 800;
+      color: #1f2937;
+      text-align: center;
+      margin-bottom: 24px;
+      line-height: 1.3;
+    }
+
+    /* ── 학년 선택 ── */
+    .grade-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .grade-btn {
+      position: relative;
+      padding: 20px 8px;
+      border: 3px solid transparent;
+      border-radius: 16px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      text-align: center;
+      transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      min-height: 90px;
+      justify-content: center;
+    }
+
+    .grade-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.18); }
+    .grade-btn:active { transform: scale(0.97); }
+    .grade-btn.selected { border-color: #1f2937; box-shadow: 0 0 0 3px rgba(31,41,55,0.25); transform: scale(1.04); }
+
+    .grade-btn .grade-emoji { font-size: 26px; }
+    .grade-btn .grade-name { font-size: 17px; font-weight: 800; }
+    .grade-btn .grade-check {
+      position: absolute;
+      top: 6px; right: 8px;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .grade-btn.selected .grade-check { opacity: 1; }
+
+    /* ── 반 선택 ── */
+    .class-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .class-btn {
+      padding: 0;
+      height: 52px;
+      border: 3px solid #e5e7eb;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 700;
+      color: #374151;
+      background: #f9fafb;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .class-btn:hover { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+    .class-btn:active { transform: scale(0.95); }
+    .class-btn.selected {
+      background: #f59e0b;
+      border-color: #d97706;
+      color: #fff;
+      transform: scale(1.06);
+      box-shadow: 0 4px 12px rgba(245,158,11,0.4);
+    }
+
+    /* ── 버튼 공통 ── */
+    .action-btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 14px;
+      font-size: 18px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-top: 20px;
+      letter-spacing: -0.3px;
+    }
+
+    .action-btn.primary {
+      background: #f59e0b;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(245,158,11,0.45);
+    }
+
+    .action-btn.primary:hover { background: #d97706; transform: translateY(-1px); }
+    .action-btn.primary:active { transform: scale(0.98); }
+    .action-btn.primary:disabled { background: #e5e7eb; color: #9ca3af; box-shadow: none; cursor: default; transform: none; }
+
+    .action-btn.secondary {
+      background: transparent;
+      color: #6b7280;
+      font-size: 15px;
+      font-weight: 600;
+      margin-top: 8px;
+      box-shadow: none;
+    }
+
+    .action-btn.secondary:hover { color: #374151; }
+
+    /* ── 홈 화면 ── */
+    .home-screen {
+      background: linear-gradient(160deg, #e0f2fe 0%, #bae6fd 40%, #7dd3fc 100%);
+    }
+
+    .profile-badge {
+      background: #fff;
+      border-radius: 20px;
+      padding: 20px 28px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.1);
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .profile-badge .profile-emoji { font-size: 40px; margin-bottom: 8px; }
+
+    .profile-badge .profile-name {
+      font-size: 28px;
+      font-weight: 900;
+      color: #0369a1;
+      letter-spacing: -0.5px;
+    }
+
+    .profile-badge .profile-date {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+
+    .coming-soon-card {
+      background: rgba(255,255,255,0.7);
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+    }
+
+    .coming-soon-card .icon { font-size: 36px; margin-bottom: 10px; }
+    .coming-soon-card h3 { font-size: 18px; font-weight: 700; color: #1e40af; margin-bottom: 6px; }
+    .coming-soon-card p { font-size: 14px; color: #64748b; line-height: 1.5; }
+
+    .reset-link {
+      margin-top: 32px;
+      font-size: 13px;
+      color: #94a3b8;
+      cursor: pointer;
+      text-decoration: underline;
+      background: none;
+      border: none;
+      padding: 8px;
+    }
+    .reset-link:hover { color: #ef4444; }
+
+    /* ── 완료 애니메이션 ── */
+    @keyframes popIn {
+      0% { transform: scale(0.7); opacity: 0; }
+      70% { transform: scale(1.08); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .pop-in { animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+
+    @keyframes slideUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .slide-up { animation: slideUp 0.35s ease forwards; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const PROFILE_KEY = 'timetable_profile_v1';
+
+    const ProfileStorage = {
+      load() {
+        try {
+          const raw = localStorage.getItem(PROFILE_KEY);
+          return raw ? JSON.parse(raw) : null;
+        } catch { return null; }
+      },
+      save(profile) {
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+      },
+      clear() {
+        localStorage.removeItem(PROFILE_KEY);
+      },
+    };
+
+    const GRADE_COLORS = [
+      '#ef4444', '#f97316', '#eab308',
+      '#22c55e', '#3b82f6', '#a855f7',
+    ];
+    const GRADE_EMOJIS = ['🐣', '🐥', '🦋', '🌻', '🚀', '⭐'];
+
+    function OnboardingScreen({ onComplete }) {
+      const [step, setStep] = React.useState('grade');
+      const [grade, setGrade] = React.useState(null);
+      const [classNo, setClassNo] = React.useState(null);
+
+      const handleGradeSelect = (g) => {
+        setGrade(g);
+        setClassNo(null);
+        setTimeout(() => setStep('class'), 180);
+      };
+
+      const handleClassSelect = (c) => setClassNo(c);
+
+      const handleBack = () => {
+        setStep('grade');
+        setClassNo(null);
+      };
+
+      const handleSubmit = () => {
+        if (!grade || !classNo) return;
+        const profile = {
+          id: Date.now().toString(),
+          grade,
+          classNo,
+          createdAt: new Date().toISOString(),
+        };
+        ProfileStorage.save(profile);
+        onComplete(profile);
+      };
+
+      return (
+        <div className="screen">
+          <div className="app-logo">📅</div>
+          <div className="app-title">내 시간표</div>
+          <div className="app-subtitle">학교 시간표를 쉽게 관리해요</div>
+
+          <div className="onboarding-card slide-up">
+            <div className="step-indicator">
+              <div className={`step-dot ${step === 'grade' ? 'active' : 'done'}`} />
+              <div className={`step-dot ${step === 'class' ? 'active' : step === 'done' ? 'done' : ''}`} />
+            </div>
+
+            {step === 'grade' && (
+              <>
+                <div className="step-label">Step 1</div>
+                <div className="step-question">몇 학년이에요?</div>
+                <div className="grade-grid">
+                  {[1,2,3,4,5,6].map((g) => (
+                    <button
+                      key={g}
+                      className={`grade-btn${grade === g ? ' selected' : ''}`}
+                      style={{ background: GRADE_COLORS[g-1] }}
+                      onClick={() => handleGradeSelect(g)}
+                    >
+                      <span className="grade-emoji">{GRADE_EMOJIS[g-1]}</span>
+                      <span className="grade-name">{g}학년</span>
+                      <span className="grade-check">✓</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {step === 'class' && (
+              <>
+                <div className="step-label">Step 2</div>
+                <div className="step-question">
+                  <span style={{color: GRADE_COLORS[grade-1]}}>{GRADE_EMOJIS[grade-1]} {grade}학년</span>
+                  {' '}몇 반이에요?
+                </div>
+                <div className="class-grid">
+                  {Array.from({length: 15}, (_, i) => i + 1).map((c) => (
+                    <button
+                      key={c}
+                      className={`class-btn${classNo === c ? ' selected' : ''}`}
+                      onClick={() => handleClassSelect(c)}
+                    >
+                      {c}반
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className="action-btn primary"
+                  disabled={!classNo}
+                  onClick={handleSubmit}
+                >
+                  {classNo ? `${grade}학년 ${classNo}반으로 시작하기 🎉` : '반을 선택해 주세요'}
+                </button>
+                <button className="action-btn secondary" onClick={handleBack}>
+                  ← 학년 다시 선택
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function HomeScreen({ profile, onReset }) {
+      const gradeColor = GRADE_COLORS[profile.grade - 1];
+      const gradeEmoji = GRADE_EMOJIS[profile.grade - 1];
+      const createdDate = new Date(profile.createdAt).toLocaleDateString('ko-KR', {
+        year: 'numeric', month: 'long', day: 'numeric',
+      });
+
+      return (
+        <div className="screen home-screen">
+          <div className="app-logo">📅</div>
+          <div className="app-title" style={{color: '#0c4a6e'}}>내 시간표</div>
+          <div className="app-subtitle" style={{color: '#075985'}}>오늘도 즐거운 학교 생활!</div>
+
+          <div className="profile-badge pop-in">
+            <div className="profile-emoji">{gradeEmoji}</div>
+            <div className="profile-name" style={{color: gradeColor}}>
+              {profile.grade}학년 {profile.classNo}반
+            </div>
+            <div className="profile-date">프로필 생성: {createdDate}</div>
+          </div>
+
+          <div className="coming-soon-card slide-up">
+            <div className="icon">🗓️</div>
+            <h3>주간 시간표</h3>
+            <p>월~금 수업을 한눈에!<br/>다음 업데이트에서 만나요.</p>
+          </div>
+
+          <button className="reset-link" onClick={() => {
+            if (window.confirm('프로필을 초기화할까요? 시간표 데이터가 모두 삭제됩니다.')) {
+              ProfileStorage.clear();
+              onReset();
+            }
+          }}>
+            프로필 초기화
+          </button>
+        </div>
+      );
+    }
+
+    function App() {
+      const [profile, setProfile] = React.useState(() => ProfileStorage.load());
+
+      if (!profile) {
+        return <OnboardingScreen onComplete={setProfile} />;
+      }
+
+      return <HomeScreen profile={profile} onReset={() => setProfile(null)} />;
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
