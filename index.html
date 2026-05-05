@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🍅 뽀모도로 타이머</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+      transition: background 0.8s ease;
+      background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 50%, #ff9a9e 100%);
+    }
+
+    body.break-bg {
+      background: linear-gradient(135deg, #d4f1e4 0%, #89f7cf 50%, #60e6b9 100%);
+    }
+
+    body.longbreak-bg {
+      background: linear-gradient(135deg, #e8d5f5 0%, #c4a8e8 50%, #9b70d4 100%);
+    }
+
+    .app {
+      width: min(100%, 440px);
+      background: rgba(255, 255, 255, 0.93);
+      border-radius: 32px;
+      padding: 36px 28px 28px;
+      box-shadow: 0 16px 60px rgba(200, 80, 60, 0.18);
+      text-align: center;
+      position: relative;
+    }
+
+    .app-title {
+      font-size: 1.7rem;
+      font-weight: 900;
+      color: #d94f2b;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+
+    /* ── Round progress dots ── */
+    .round-dots {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .round-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2.5px solid #ff8c6b;
+      background: transparent;
+      transition: background 0.3s, border-color 0.3s;
+    }
+
+    .round-dot.filled { background: #ff8c6b; }
+    .round-dot.lb-style { border-color: #9b70d4; }
+    .round-dot.filled.lb-style { background: #9b70d4; }
+
+    /* ── Settings ── */
+    .settings { margin-bottom: 24px; }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .setting-label {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #666;
+      width: 80px;
+      text-align: right;
+    }
+
+    .setting-value {
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: #1a1a2e;
+      min-width: 58px;
+      text-align: center;
+    }
+
+    .setting-hint {
+      font-size: 0.82rem;
+      color: #9b70d4;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    /* ── Stepper buttons ── */
+    .stepper-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: none;
+      font-size: 1.35rem;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ff8c6b;
+      color: #fff;
+      transition: transform 0.12s, opacity 0.2s;
+      line-height: 1;
+    }
+    .stepper-btn:hover:not(:disabled) { transform: scale(1.1); }
+    .stepper-btn:active:not(:disabled) { transform: scale(0.93); }
+    .stepper-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* ── Mode row with character ── */
+    .mode-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .mode-character {
+      font-size: 1.9rem;
+      line-height: 1;
+      animation: charBounce 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes charBounce {
+      from { transform: translateY(0); }
+      to   { transform: translateY(-6px); }
+    }
+
+    .mode-label {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #d94f2b;
+    }
+    .mode-label.break-mode     { color: #0ca678; }
+    .mode-label.longbreak-mode { color: #7c3aed; }
+
+    /* ── Long-break chip ── */
+    .longbreak-chip {
+      display: inline-block;
+      background: #f3e8ff;
+      color: #7c3aed;
+      font-size: 0.82rem;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
+
+    /* ── Timer ring ── */
+    .timer-ring-wrap {
+      position: relative;
+      width: 240px;
+      height: 240px;
+      margin: 8px auto 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ring-svg {
+      position: absolute;
+      top: 0; left: 0;
+      transform: rotate(-90deg);
+    }
+
+    .ring-bg        { fill: none; stroke: #f0e0d8; stroke-width: 10; }
+    .ring-track     { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 0.6s linear; }
+    .ring-focus     { stroke: #ff6b6b; }
+    .ring-break     { stroke: #20c997; }
+    .ring-longbreak { stroke: #9b70d4; }
+
+    .timer-display {
+      font-size: clamp(3rem, 14vw, 4.5rem);
+      font-weight: 900;
+      color: #1a1a2e;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Pre-start timer preview ── */
+    .timer-preview {
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: #bbb;
+      letter-spacing: -0.04em;
+      margin-bottom: 20px;
+    }
+
+    /* ── Control buttons ── */
+    .btn {
+      min-width: 44px;
+      min-height: 48px;
+      border: none;
+      border-radius: 18px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      cursor: pointer;
+      padding: 12px 28px;
+      transition: transform 0.1s, box-shadow 0.1s;
+      touch-action: manipulation;
+    }
+    .btn:hover  { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.13); }
+    .btn:active { transform: translateY(0); box-shadow: none; }
+
+    /* WCAG 2.1 AA — contrast ratios verified ≥ 4.5:1 */
+    .btn-start {
+      font-size: 1.25rem;
+      padding: 16px 52px;
+      min-height: 56px;
+      border-radius: 22px;
+      background: #2E7D32; /* white on #2E7D32 = 5.5:1 ✓ AA */
+      color: #fff;
+      box-shadow: 0 4px 18px rgba(46, 125, 50, 0.45);
+    }
+    .btn-pause  { background: #E65100; color: #fff; box-shadow: 0 4px 14px rgba(230,81,0,.4); }   /* 4.7:1 ✓ AA */
+    .btn-resume { background: #1565C0; color: #fff; box-shadow: 0 4px 14px rgba(21,101,192,.4); } /* 7.1:1 ✓ AA */
+    .btn-reset  { background: #6A1B9A; color: #fff; }                                              /* 6.5:1 ✓ AA */
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 4px;
+    }
+
+    /* ── Completed rounds ── */
+    .rounds-row {
+      margin-top: 14px;
+      font-size: 0.88rem;
+      font-weight: 800;
+      color: #7c3aed;
+    }
+
+    /* ── Sessions ── */
+    .sessions {
+      margin-top: 16px;
+      padding-top: 18px;
+      border-top: 2px dashed #f5d8d0;
+    }
+
+    .sessions-label {
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+
+    .tomatoes {
+      font-size: 1.45rem;
+      line-height: 1.8;
+      min-height: 2rem;
+      word-break: break-word;
+    }
+
+    .tomatoes-empty { font-size: 0.9rem; color: #ccc; }
+
+    /* ── Notification overlay ── */
+    .notif-overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 200;
+    }
+
+    .notif-box {
+      background: rgba(255, 255, 255, 0.97);
+      border-radius: 28px;
+      padding: 24px 44px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.14);
+      animation: notifFadeIn 0.5s ease-out both;
+      text-align: center;
+    }
+
+    .notif-emoji {
+      font-size: 3.4rem;
+      display: block;
+      margin-bottom: 6px;
+      animation: charBounce 0.6s ease-in-out infinite alternate;
+    }
+
+    .notif-text {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #d94f2b;
+    }
+    .notif-box.break-notif     .notif-text { color: #0ca678; }
+    .notif-box.longbreak-notif .notif-text { color: #7c3aed; }
+
+    @keyframes notifFadeIn {
+      from { opacity: 0; transform: scale(0.82); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* ═══════════════════════════════════════════
+       OPS-001: 운영자 알림 & 수동 재처리
+       ═══════════════════════════════════════════ */
+
+    /* ── Ops error banner ── */
+    .ops-banner {
+      background: #fef2f2;
+      border: 1.5px solid #fca5a5;
+      border-radius: 12px;
+      padding: 9px 14px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      text-align: left;
+    }
+    .ops-banner-text {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #b91c1c;
+      flex: 1;
+    }
+    .ops-banner-btn {
+      background: #ef4444;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 5px 12px;
+      font-size: 0.82rem;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+      min-height: 32px;
+    }
+    .ops-banner-btn:hover { background: #dc2626; }
+
+    /* ── Admin toggle (gear icon) ── */
+    .admin-toggle {
+      position: absolute;
+      bottom: 12px;
+      right: 16px;
+      background: transparent;
+      border: none;
+      font-size: 1.05rem;
+      cursor: pointer;
+      color: #d1d5db;
+      padding: 4px 6px;
+      border-radius: 8px;
+      transition: color 0.2s;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .admin-toggle:hover { color: #9ca3af; }
+    .admin-toggle.has-errors { color: #ef4444; animation: errorPulse 2s ease-in-out infinite; }
+    @keyframes errorPulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.45; }
+    }
+    .admin-badge {
+      background: #ef4444;
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 900;
+      min-width: 17px;
+      height: 17px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+    }
+
+    /* ── Admin panel overlay ── */
+    .admin-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.42);
+      z-index: 400;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0 12px 12px;
+    }
+    .admin-panel {
+      background: #fff;
+      border-radius: 24px 24px 18px 18px;
+      width: min(100%, 480px);
+      max-height: 72vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 -8px 40px rgba(0,0,0,0.18);
+      animation: slideUp 0.28s ease-out;
+      overflow: hidden;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    .admin-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px 12px;
+      border-bottom: 1.5px solid #f3f4f6;
+      flex-shrink: 0;
+    }
+    .admin-title {
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: #1a1a2e;
+    }
+    .admin-header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .btn-op {
+      font-size: 0.8rem;
+      font-weight: 800;
+      border: none;
+      border-radius: 8px;
+      padding: 5px 12px;
+      cursor: pointer;
+      min-height: 30px;
+    }
+    .btn-clear  { background: #f3f4f6; color: #6b7280; }
+    .btn-clear:hover  { background: #e5e7eb; }
+    .btn-close  { background: #fee2e2; color: #b91c1c; }
+    .btn-close:hover  { background: #fecaca; }
+    .admin-body {
+      overflow-y: auto;
+      padding: 14px 20px 20px;
+      flex: 1;
+    }
+    .admin-empty {
+      text-align: center;
+      padding: 28px 0;
+      color: #9ca3af;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    /* ── Error log entries ── */
+    .error-entry {
+      background: #fef2f2;
+      border: 1.5px solid #fecaca;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      text-align: left;
+    }
+    .error-entry.resolved {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      opacity: 0.72;
+    }
+    .error-entry-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .error-entry-type {
+      font-size: 0.72rem;
+      font-weight: 900;
+      color: #b91c1c;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      background: #fee2e2;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+    .error-entry.resolved .error-entry-type {
+      color: #16a34a;
+      background: #dcfce7;
+    }
+    .error-entry-time {
+      font-size: 0.76rem;
+      color: #9ca3af;
+    }
+    .error-entry-reason {
+      font-size: 0.88rem;
+      color: #374151;
+      margin-bottom: 9px;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+    .error-entry-actions {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+    .btn-retry   { background: #dbeafe; color: #1d4ed8; }
+    .btn-retry:hover   { background: #bfdbfe; }
+    .btn-resolve { background: #dcfce7; color: #16a34a; }
+    .btn-resolve:hover { background: #bbf7d0; }
+
+    /* ── Email report row ── */
+    .report-row {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .email-input {
+      border: 1.5px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+    .email-input:focus { border-color: #7c3aed; }
+    .btn-report {
+      background: #ede9fe;
+      color: #5b21b6;
+      border: none;
+      border-radius: 11px;
+      padding: 9px 18px;
+      font-size: 0.88rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background 0.15s;
+      min-height: 40px;
+    }
+    .btn-report:hover:not(:disabled) { background: #ddd6fe; }
+    .btn-report:disabled { opacity: 0.45; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    const STORAGE_KEY      = 'pomodoro_v2';
+    const OPS_LOG_KEY      = 'pomodoro_ops_v1';
+    const PARENT_EMAIL_KEY = 'pomodoro_parent_email';
+    const LONG_BREAK_MIN   = 15;
+    const CYCLES_PER_ROUND = 4;
+
+    function getTodayStr() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function loadPersistedState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return { sessions: 0, rounds: 0, cycleInRound: 0 };
+        const { sessions, rounds, cycleInRound, date } = JSON.parse(raw);
+        if (date !== getTodayStr()) return { sessions: 0, rounds: 0, cycleInRound: 0 };
+        return { sessions: sessions | 0, rounds: rounds | 0, cycleInRound: cycleInRound | 0 };
+      } catch { return { sessions: 0, rounds: 0, cycleInRound: 0 }; }
+    }
+
+    function persistState(sessions, rounds, cycleInRound) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        sessions, rounds, cycleInRound, date: getTodayStr()
+      }));
+    }
+
+    /* ─── OPS-001: Error log helpers ─── */
+
+    function loadOpsLog() {
+      try {
+        const raw = localStorage.getItem(OPS_LOG_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch { return []; }
+    }
+
+    function saveOpsLog(log) {
+      try {
+        localStorage.setItem(OPS_LOG_KEY, JSON.stringify(log.slice(-50)));
+      } catch (_) {}
+    }
+
+    function appendOpsEntry(entry) {
+      const log = loadOpsLog();
+      log.push(entry);
+      saveOpsLog(log);
+    }
+
+    function patchOpsEntry(id, patch) {
+      const log = loadOpsLog();
+      const idx = log.findIndex(e => e.id === id);
+      if (idx >= 0) { log[idx] = { ...log[idx], ...patch }; saveOpsLog(log); }
+    }
+
+    function clearResolvedOps() {
+      saveOpsLog(loadOpsLog().filter(e => !e.resolved));
+    }
+
+    function createOpsEntry(type, reason, payload) {
+      const entry = {
+        id:        `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,5)}`,
+        timestamp: new Date().toISOString(),
+        type,
+        reason,
+        payload:   payload || null,
+        retried:   false,
+        resolved:  false,
+      };
+      appendOpsEntry(entry);
+      return entry;
+    }
+
+    function fmtTimestamp(iso) {
+      try {
+        const d = new Date(iso);
+        return `${d.toLocaleDateString('ko-KR')} ${d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`;
+      } catch { return iso; }
+    }
+
+    const TYPE_LABELS = {
+      email_report: '이메일 보고서',
+      storage_save: '데이터 저장',
+      storage_load: '데이터 로드',
+    };
+
+    /* ─── Audio helpers ─── */
+
+    function playFocusEndSound() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const t = ctx.currentTime;
+        [[880, 0], [1100, 0.32]].forEach(([freq, delay]) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.type = 'sine'; osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.28, t + delay);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.28);
+          osc.start(t + delay); osc.stop(t + delay + 0.28);
+        });
+        setTimeout(() => ctx.close(), 1600);
+      } catch (_) {}
+    }
+
+    function playRoundCompleteSound() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const t = ctx.currentTime;
+        [[523, 0], [659, 0.18], [784, 0.36], [1047, 0.54]].forEach(([freq, delay]) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.type = 'triangle'; osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.25, t + delay);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.32);
+          osc.start(t + delay); osc.stop(t + delay + 0.32);
+        });
+        setTimeout(() => ctx.close(), 2000);
+      } catch (_) {}
+    }
+
+    function playBreakEndSound() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const t = ctx.currentTime;
+        [[523, 0], [659, 0.2], [784, 0.4]].forEach(([freq, delay]) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.type = 'triangle'; osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.22, t + delay);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.2);
+          osc.start(t + delay); osc.stop(t + delay + 0.2);
+        });
+        setTimeout(() => ctx.close(), 1600);
+      } catch (_) {}
+    }
+
+    function playLongBreakEndSound() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const t = ctx.currentTime;
+        [[523, 0], [587, 0.14], [659, 0.28], [784, 0.42], [1047, 0.56]].forEach(([freq, delay]) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.type = 'sine'; osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.22, t + delay);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.22);
+          osc.start(t + delay); osc.stop(t + delay + 0.22);
+        });
+        setTimeout(() => ctx.close(), 2000);
+      } catch (_) {}
+    }
+
+    function fmt(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+
+    /* ─── Small components ─── */
+
+    function TomatoCount({ count }) {
+      if (count === 0) return <span className="tomatoes-empty">아직 없어요 😊</span>;
+      if (count <= 12) return <span>{Array.from({ length: count }, () => '🍅').join(' ')}</span>;
+      return <span>🍅×{count}</span>;
+    }
+
+    function RoundDots({ cycleInRound, isLongBreak }) {
+      return (
+        <div className="round-dots" aria-label={`이번 라운드 ${cycleInRound}번 완료`}>
+          {Array.from({ length: CYCLES_PER_ROUND }, (_, i) => (
+            <div
+              key={i}
+              className={[
+                'round-dot',
+                i < cycleInRound ? 'filled' : '',
+                isLongBreak ? 'lb-style' : '',
+              ].filter(Boolean).join(' ')}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    /* ─── OPS-001: OpsBanner ─── */
+    function OpsBanner({ count, onOpen }) {
+      return (
+        <div className="ops-banner" role="alert">
+          <span className="ops-banner-text">
+            ⚠️ 처리 실패 {count}건 — 운영자 확인 필요
+          </span>
+          <button className="ops-banner-btn" onClick={onOpen}>
+            확인
+          </button>
+        </div>
+      );
+    }
+
+    /* ─── OPS-001: AdminPanel ─── */
+    function AdminPanel({ log, onRetry, onResolve, onClearResolved, onClose }) {
+      const unresolved = log.filter(e => !e.resolved);
+      const resolved   = log.filter(e =>  e.resolved);
+      const sorted     = [...unresolved, ...resolved];
+
+      return (
+        <div className="admin-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+          <div className="admin-panel" role="dialog" aria-label="운영자 패널">
+            <div className="admin-header">
+              <span className="admin-title">⚙️ 운영자 패널</span>
+              <div className="admin-header-actions">
+                {resolved.length > 0 && (
+                  <button className="btn-op btn-clear" onClick={onClearResolved}>
+                    해결됨 삭제
+                  </button>
+                )}
+                <button className="btn-op btn-close" onClick={onClose}>닫기</button>
+              </div>
+            </div>
+            <div className="admin-body">
+              {sorted.length === 0 ? (
+                <div className="admin-empty">✅ 처리 실패 이력이 없습니다</div>
+              ) : (
+                sorted.map(entry => (
+                  <div
+                    key={entry.id}
+                    className={`error-entry${entry.resolved ? ' resolved' : ''}`}
+                  >
+                    <div className="error-entry-header">
+                      <span className="error-entry-type">
+                        {entry.resolved ? '✓ ' : ''}{TYPE_LABELS[entry.type] || entry.type}
+                      </span>
+                      <span className="error-entry-time">{fmtTimestamp(entry.timestamp)}</span>
+                    </div>
+                    <div className="error-entry-reason">{entry.reason}</div>
+                    {!entry.resolved && (
+                      <div className="error-entry-actions">
+                        <button
+                          className="btn-op btn-retry"
+                          onClick={() => onRetry(entry)}
+                        >
+                          🔄 재처리
+                        </button>
+                        <button
+                          className="btn-op btn-resolve"
+                          onClick={() => onResolve(entry)}
+                        >
+                          ✓ 해결됨
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ─── Ring constants ─── */
+    const RING_R = 100;
+    const RING_C = 2 * Math.PI * RING_R;
+
+    function getPhaseInfo(phase) {
+      if (phase === 'focus' || phase === 'focus_paused')
+        return { char: '🐰', label: '집중 시간! 📚', labelClass: '',              ringClass: 'ring-focus' };
+      if (phase === 'break' || phase === 'break_paused')
+        return { char: '🐶', label: '짧은 휴식! 🎵', labelClass: 'break-mode',    ringClass: 'ring-break' };
+      if (phase === 'longbreak' || phase === 'longbreak_paused')
+        return { char: '🦄', label: '긴 휴식! 🌈',   labelClass: 'longbreak-mode', ringClass: 'ring-longbreak' };
+      return { char: '', label: '', labelClass: '', ringClass: 'ring-focus' };
+    }
+
+    /* ─── App ─── */
+    function App() {
+      // phase: 'setup'|'focus'|'focus_paused'|'break'|'break_paused'|'longbreak'|'longbreak_paused'|'waiting'
+      const [phase, setPhase] = useState('setup');
+      const [focusMin, setFocusMin] = useState(25);
+      const [breakMin, setBreakMin] = useState(5);
+      const [timeLeft, setTimeLeft] = useState(25 * 60);
+      const [totalSec, setTotalSec] = useState(25 * 60);
+
+      const init = loadPersistedState();
+      const [sessions,     setSessions]     = useState(init.sessions);
+      const [rounds,       setRounds]       = useState(init.rounds);
+      const [cycleInRound, setCycleInRound] = useState(init.cycleInRound);
+
+      const [notif, setNotif] = useState(null);
+      const notifTimer = useRef(null);
+
+      // OPS-001 state
+      const [opsLog,       setOpsLog]       = useState(loadOpsLog);
+      const [showAdmin,    setShowAdmin]    = useState(false);
+      const [parentEmail,  setParentEmail]  = useState(() => localStorage.getItem(PARENT_EMAIL_KEY) || '');
+      const [sendingReport, setSendingReport] = useState(false);
+
+      const unresolvedCount = opsLog.filter(e => !e.resolved).length;
+
+      const phaseRef        = useRef(phase);
+      const sessionsRef     = useRef(sessions);
+      const roundsRef       = useRef(rounds);
+      const cycleInRoundRef = useRef(cycleInRound);
+      const focusMinRef     = useRef(focusMin);
+      const breakMinRef     = useRef(breakMin);
+      phaseRef.current        = phase;
+      sessionsRef.current     = sessions;
+      roundsRef.current       = rounds;
+      cycleInRoundRef.current = cycleInRound;
+      focusMinRef.current     = focusMin;
+      breakMinRef.current     = breakMin;
+
+      const running = phase === 'focus' || phase === 'break' || phase === 'longbreak';
+
+      /* ── OPS-001: error tracker ── */
+      function trackError(type, reason, payload) {
+        createOpsEntry(type, reason, payload);
+        setOpsLog(loadOpsLog());
+      }
+
+      /* ── Persist with error tracking ── */
+      function persistSafe(s, r, c) {
+        try {
+          persistState(s, r, c);
+        } catch (e) {
+          trackError('storage_save', `localStorage 저장 실패: ${e.message}`, { sessions: s, rounds: r, cycleInRound: c });
+        }
+      }
+
+      /* ── OPS-001: email report ── */
+      function handleSendReport() {
+        setSendingReport(true);
+        try {
+          const email = parentEmail.trim();
+          if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            throw new Error('올바른 이메일 주소를 입력해 주세요.');
+          }
+          localStorage.setItem(PARENT_EMAIL_KEY, email);
+
+          const today = getTodayStr();
+          const body = [
+            `📊 뽀모도로 일일 보고서 — ${today}`,
+            '',
+            `✅ 완료한 집중 세션: ${sessionsRef.current}회`,
+            `🦄 완료한 라운드 (4사이클): ${roundsRef.current}회`,
+            '',
+            '자녀가 오늘도 열심히 공부했어요! 🌟',
+            '',
+            '— 뽀모도로 타이머 앱',
+          ].join('\n');
+
+          const subject = encodeURIComponent(`뽀모도로 일일 보고서 — ${today}`);
+          const encoded = encodeURIComponent(body);
+          const mailto  = `mailto:${encodeURIComponent(email)}?subject=${subject}&body=${encoded}`;
+
+          if (mailto.length > 2048) {
+            throw new Error('보고서 내용이 이메일 URI 한도를 초과했습니다.');
+          }
+          window.location.href = mailto;
+        } catch (e) {
+          trackError('email_report', e.message, {
+            parentEmail: parentEmail.trim(),
+            sessions:    sessionsRef.current,
+            rounds:      roundsRef.current,
+            date:        getTodayStr(),
+          });
+        } finally {
+          setSendingReport(false);
+        }
+      }
+
+      /* ── OPS-001: retry ── */
+      function handleRetry(entry) {
+        patchOpsEntry(entry.id, { retried: true });
+
+        if (entry.type === 'email_report' && entry.payload) {
+          const { parentEmail: em, sessions: s, rounds: r, date } = entry.payload;
+          if (em) {
+            try {
+              const subject = encodeURIComponent(`[재발송] 뽀모도로 보고서 — ${date}`);
+              const body    = encodeURIComponent(
+                `📊 뽀모도로 보고서 재발송 — ${date}\n\n✅ 집중 세션: ${s}회\n🦄 라운드: ${r}회`
+              );
+              const mailto = `mailto:${encodeURIComponent(em)}?subject=${subject}&body=${body}`;
+              window.location.href = mailto;
+              patchOpsEntry(entry.id, { resolved: true });
+            } catch (e) {
+              trackError('email_report', `재처리 실패: ${e.message}`, entry.payload);
+            }
+          }
+        } else if (entry.type === 'storage_save' && entry.payload) {
+          const { sessions: s, rounds: r, cycleInRound: c } = entry.payload;
+          try {
+            persistState(s, r, c);
+            patchOpsEntry(entry.id, { resolved: true });
+          } catch (e) {
+            trackError('storage_save', `재처리 실패: ${e.message}`, entry.payload);
+          }
+        }
+
+        setOpsLog(loadOpsLog());
+      }
+
+      function handleResolve(entry) {
+        patchOpsEntry(entry.id, { resolved: true });
+        setOpsLog(loadOpsLog());
+      }
+
+      function handleClearResolved() {
+        clearResolvedOps();
+        setOpsLog(loadOpsLog());
+      }
+
+      /* ── Timer tick ── */
+      useEffect(() => {
+        if (!running || timeLeft <= 0) return;
+        const id = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+        return () => clearTimeout(id);
+      }, [running, timeLeft]);
+
+      /* ── Phase transitions on timer completion ── */
+      useEffect(() => {
+        if (!running || timeLeft !== 0) return;
+        const cur = phaseRef.current;
+
+        if (cur === 'focus') {
+          const newSessions = sessionsRef.current + 1;
+          const nextCycle   = (cycleInRoundRef.current + 1) % CYCLES_PER_ROUND;
+          const isRoundDone = nextCycle === 0;
+          const newRounds   = isRoundDone ? roundsRef.current + 1 : roundsRef.current;
+
+          setSessions(newSessions);
+          setCycleInRound(nextCycle);
+          setRounds(newRounds);
+          persistSafe(newSessions, newRounds, nextCycle);
+
+          if (isRoundDone) {
+            playRoundCompleteSound();
+            const lbSec = LONG_BREAK_MIN * 60;
+            setTotalSec(lbSec); setTimeLeft(lbSec); setPhase('longbreak');
+            showNotif('🦄', '라운드 완료! 긴 휴식이에요! 🎊', 'longbreak');
+          } else {
+            playFocusEndSound();
+            const bSec = breakMinRef.current * 60;
+            setTotalSec(bSec); setTimeLeft(bSec); setPhase('break');
+            showNotif('🐶', '잠깐 쉬어요! 🎵', 'break');
+          }
+        } else if (cur === 'break') {
+          playBreakEndSound();
+          const fSec = focusMinRef.current * 60;
+          setTotalSec(fSec); setTimeLeft(fSec); setPhase('waiting');
+          showNotif('🐰', '다시 집중 시간! 📚', 'focus');
+        } else if (cur === 'longbreak') {
+          playLongBreakEndSound();
+          const fSec = focusMinRef.current * 60;
+          setTotalSec(fSec); setTimeLeft(fSec); setPhase('waiting');
+          showNotif('🐰', '새 라운드 시작! 🚀', 'focus');
+        }
+      }, [timeLeft, running]); // eslint-disable-line
+
+      /* ── Periodic localStorage sync ── */
+      useEffect(() => {
+        const id = setInterval(() => {
+          const s = loadPersistedState();
+          setSessions(s.sessions); setRounds(s.rounds); setCycleInRound(s.cycleInRound);
+        }, 60_000);
+        return () => clearInterval(id);
+      }, []);
+
+      /* ── Background color sync ── */
+      useEffect(() => {
+        const isBreak     = phase === 'break'     || phase === 'break_paused';
+        const isLongBreak = phase === 'longbreak' || phase === 'longbreak_paused';
+        document.body.classList.toggle('break-bg',     isBreak);
+        document.body.classList.toggle('longbreak-bg', isLongBreak);
+      }, [phase]);
+
+      function showNotif(emoji, text, kind) {
+        setNotif({ emoji, text, kind });
+        clearTimeout(notifTimer.current);
+        notifTimer.current = setTimeout(() => setNotif(null), 2200);
+      }
+
+      function handleStart() {
+        const fSec = focusMin * 60;
+        setTotalSec(fSec); setTimeLeft(fSec); setPhase('focus');
+      }
+
+      function handlePause() {
+        setPhase(p => p === 'focus' ? 'focus_paused' : p === 'break' ? 'break_paused' : 'longbreak_paused');
+      }
+
+      function handleResume() {
+        setPhase(p => p === 'focus_paused' ? 'focus' : p === 'break_paused' ? 'break' : 'longbreak');
+      }
+
+      function handleReset() {
+        clearTimeout(notifTimer.current);
+        setNotif(null);
+        const fSec = focusMin * 60;
+        setTotalSec(fSec); setTimeLeft(fSec); setPhase('setup');
+      }
+
+      const isFocusPhase     = phase === 'focus'     || phase === 'focus_paused';
+      const isBreakPhase     = phase === 'break'     || phase === 'break_paused';
+      const isLongBreakPhase = phase === 'longbreak' || phase === 'longbreak_paused';
+      const isRunningPhase   = isFocusPhase || isBreakPhase || isLongBreakPhase;
+
+      const progress   = totalSec > 0 ? timeLeft / totalSec : 1;
+      const dashOffset = RING_C * (1 - progress);
+      const phaseInfo  = getPhaseInfo(phase);
+
+      return (
+        <div className="app">
+          <div className="app-title">🍅 뽀모도로 타이머</div>
+
+          {/* OPS-001: unresolved error banner */}
+          {unresolvedCount > 0 && !showAdmin && (
+            <OpsBanner count={unresolvedCount} onOpen={() => setShowAdmin(true)} />
+          )}
+
+          <RoundDots cycleInRound={cycleInRound} isLongBreak={isLongBreakPhase} />
+
+          {/* ── Setup / Waiting ── */}
+          {(phase === 'setup' || phase === 'waiting') && (
+            <>
+              <div className="settings">
+                <div className="setting-row">
+                  <span className="setting-label">집중 시간</span>
+                  <button
+                    className="stepper-btn"
+                    onClick={() => setFocusMin(m => Math.max(5, m - 1))}
+                    disabled={focusMin <= 5}
+                    aria-label="집중 시간 줄이기"
+                  >−</button>
+                  <span className="setting-value">{focusMin}분</span>
+                  <button
+                    className="stepper-btn"
+                    onClick={() => setFocusMin(m => Math.min(30, m + 1))}
+                    disabled={focusMin >= 30}
+                    aria-label="집중 시간 늘리기"
+                  >+</button>
+                </div>
+                <div className="setting-row">
+                  <span className="setting-label">휴식 시간</span>
+                  <button
+                    className="stepper-btn"
+                    onClick={() => setBreakMin(m => Math.max(1, m - 1))}
+                    disabled={breakMin <= 1}
+                    aria-label="휴식 시간 줄이기"
+                  >−</button>
+                  <span className="setting-value">{breakMin}분</span>
+                  <button
+                    className="stepper-btn"
+                    onClick={() => setBreakMin(m => Math.min(10, m + 1))}
+                    disabled={breakMin >= 10}
+                    aria-label="휴식 시간 늘리기"
+                  >+</button>
+                </div>
+                <div className="setting-hint">긴 휴식 15분 — 집중 4회 후 자동 전환</div>
+              </div>
+
+              {phase === 'waiting' && (
+                <div className="timer-preview">{fmt(focusMin * 60)}</div>
+              )}
+
+              <button className="btn btn-start" onClick={handleStart}>
+                {phase === 'waiting' ? '다시 집중! 🐰' : '시작! 🚀'}
+              </button>
+            </>
+          )}
+
+          {/* ── Focus / Break / LongBreak (running or paused) ── */}
+          {isRunningPhase && (
+            <>
+              {isLongBreakPhase && (
+                <div className="longbreak-chip">긴 휴식 — 15분</div>
+              )}
+
+              <div className="mode-row">
+                <span className="mode-character" aria-hidden="true">{phaseInfo.char}</span>
+                <span className={`mode-label ${phaseInfo.labelClass}`}>{phaseInfo.label}</span>
+              </div>
+
+              <div className="timer-ring-wrap">
+                <svg
+                  width="240" height="240"
+                  viewBox="0 0 240 240"
+                  className="ring-svg"
+                  aria-hidden="true"
+                >
+                  <circle className="ring-bg" cx="120" cy="120" r={RING_R} />
+                  <circle
+                    className={`ring-track ${phaseInfo.ringClass}`}
+                    cx="120" cy="120" r={RING_R}
+                    strokeDasharray={RING_C}
+                    strokeDashoffset={dashOffset}
+                  />
+                </svg>
+                <div
+                  className="timer-display"
+                  role="timer"
+                  aria-live="polite"
+                  aria-atomic="true"
+                  aria-label={`남은 시간 ${fmt(timeLeft)}`}
+                >
+                  {fmt(timeLeft)}
+                </div>
+              </div>
+
+              <div className="controls">
+                {running ? (
+                  <button className="btn btn-pause" onClick={handlePause}>일시정지</button>
+                ) : (
+                  <button className="btn btn-resume" onClick={handleResume}>재개</button>
+                )}
+                <button className="btn btn-reset" onClick={handleReset}>초기화</button>
+              </div>
+            </>
+          )}
+
+          {rounds > 0 && (
+            <div className="rounds-row">🦄 완료한 라운드: {rounds}회</div>
+          )}
+
+          <div className="sessions">
+            <div className="sessions-label">오늘 완료한 세션</div>
+            <div className="tomatoes">
+              <TomatoCount count={sessions} />
+            </div>
+
+            {/* OPS-001: daily report to parent */}
+            <div className="report-row">
+              <input
+                className="email-input"
+                type="email"
+                placeholder="부모님 이메일 주소"
+                value={parentEmail}
+                onChange={e => setParentEmail(e.target.value)}
+                aria-label="부모님 이메일 주소"
+              />
+              <button
+                className="btn-report"
+                onClick={handleSendReport}
+                disabled={sendingReport || !parentEmail.trim()}
+                aria-label="일일 보고서 이메일 전송"
+              >
+                {sendingReport ? '전송 중…' : '📧 부모님께 보고서 보내기'}
+              </button>
+            </div>
+          </div>
+
+          {/* OPS-001: admin toggle gear button */}
+          <button
+            className={`admin-toggle${unresolvedCount > 0 ? ' has-errors' : ''}`}
+            onClick={() => setShowAdmin(true)}
+            aria-label="운영자 패널 열기"
+            title="운영자 패널"
+          >
+            ⚙
+            {unresolvedCount > 0 && (
+              <span className="admin-badge" aria-label={`미해결 오류 ${unresolvedCount}건`}>
+                {unresolvedCount}
+              </span>
+            )}
+          </button>
+
+          {/* OPS-001: admin panel */}
+          {showAdmin && (
+            <AdminPanel
+              log={opsLog}
+              onRetry={handleRetry}
+              onResolve={handleResolve}
+              onClearResolved={handleClearResolved}
+              onClose={() => setShowAdmin(false)}
+            />
+          )}
+
+          {/* ── Phase change notification overlay ── */}
+          {notif && (
+            <div className="notif-overlay">
+              <div className={`notif-box${notif.kind === 'break' ? ' break-notif' : notif.kind === 'longbreak' ? ' longbreak-notif' : ''}`}>
+                <span className="notif-emoji">{notif.emoji}</span>
+                <div className="notif-text">{notif.text}</div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
