@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>📅 내 시간표</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(160deg, #e8f4fd 0%, #d0eaff 100%);
+      font-family: 'Apple SD Gothic Neo', 'Segoe UI', sans-serif;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      padding: 20px 16px 16px;
+      text-align: center;
+      box-shadow: 0 4px 16px rgba(79, 172, 254, 0.35);
+    }
+    .header-title {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+    .header-sub {
+      font-size: 0.88rem;
+      color: rgba(255,255,255,0.85);
+      margin-top: 4px;
+      font-weight: 700;
+    }
+
+    /* ── Grid ── */
+    .grid-wrap {
+      overflow-x: auto;
+      padding: 16px 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 36px repeat(5, 1fr);
+      gap: 4px;
+      min-width: 320px;
+    }
+
+    .grid-head {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.82rem;
+      font-weight: 900;
+      border-radius: 10px;
+    }
+    .grid-head.period-head { color: #999; background: transparent; }
+    .grid-head.day-head {
+      background: #fff;
+      color: #555;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+    }
+    .grid-head.day-head.today {
+      background: linear-gradient(135deg, #4facfe 0%, #00c6fb 100%);
+      color: #fff;
+      box-shadow: 0 3px 10px rgba(79,172,254,0.45);
+    }
+
+    .period-label {
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: #aaa;
+    }
+
+    /* ── Subject cells ── */
+    .subject-cell {
+      height: 60px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: #fff;
+      cursor: pointer;
+      text-align: center;
+      line-height: 1.3;
+      padding: 4px;
+      transition: transform 0.13s, box-shadow 0.13s;
+      position: relative;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      border: none;
+      width: 100%;
+    }
+    .subject-cell:active { transform: scale(0.93); }
+    .subject-cell:hover  { transform: scale(1.04); box-shadow: 0 6px 20px rgba(0,0,0,0.18); }
+    .subject-cell.today-col { box-shadow: 0 3px 10px rgba(0,0,0,0.14); }
+
+    .supply-dot {
+      position: absolute;
+      top: 5px;
+      right: 6px;
+      width: 7px;
+      height: 7px;
+      background: #fff;
+      border-radius: 50%;
+      opacity: 0.85;
+    }
+
+    .empty-cell {
+      height: 60px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.45);
+      cursor: default;
+    }
+
+    /* ── Pulse animation for current period (FR-020) ── */
+    @keyframes pulse-border {
+      0%   { box-shadow: 0 0 0 0 rgba(79,172,254,0.7); }
+      70%  { box-shadow: 0 0 0 8px rgba(79,172,254,0); }
+      100% { box-shadow: 0 0 0 0 rgba(79,172,254,0); }
+    }
+    .subject-cell.current-period {
+      animation: pulse-border 1.8s ease-out infinite;
+      outline: 2.5px solid rgba(79,172,254,0.6);
+    }
+
+    /* ── Legend ── */
+    .legend {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+      padding: 0 12px 12px;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #666;
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .legend-pulse {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      border: 2px solid #4facfe;
+      animation: pulse-border 1.8s ease-out infinite;
+    }
+    .legend-today-badge {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #4facfe, #00c6fb);
+    }
+
+    /* ── Bottom Sheet (FR-021) ── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 100;
+      animation: fade-in 0.18s ease;
+    }
+    @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+    .sheet {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 101;
+      background: #fff;
+      border-radius: 24px 24px 0 0;
+      max-height: 80vh;
+      overflow-y: auto;
+      animation: slide-up 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    @keyframes slide-up {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+
+    .sheet-handle {
+      width: 40px;
+      height: 4px;
+      background: #e0e0e0;
+      border-radius: 2px;
+      margin: 12px auto 0;
+    }
+
+    .sheet-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      border-radius: 0;
+      position: relative;
+    }
+    .sheet-banner-icon {
+      font-size: 2rem;
+      flex-shrink: 0;
+    }
+    .sheet-banner-text { flex: 1; min-width: 0; }
+    .sheet-subject-name {
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: -0.01em;
+    }
+    .sheet-period-info {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.82);
+      margin-top: 2px;
+    }
+    .sheet-close {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      background: rgba(255,255,255,0.25);
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      font-size: 1rem;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+    }
+
+    .sheet-body { padding: 16px 20px; }
+
+    .section { margin-bottom: 20px; }
+    .section-label {
+      font-size: 0.82rem;
+      font-weight: 900;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+    }
+
+    /* Teacher input */
+    .teacher-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #f5f7fa;
+      border-radius: 12px;
+      padding: 8px 12px;
+    }
+    .teacher-icon { font-size: 1.2rem; }
+    .teacher-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #333;
+      outline: none;
+      min-width: 0;
+      font-family: inherit;
+    }
+    .teacher-input::placeholder { color: #ccc; font-weight: 500; }
+    .teacher-save-btn {
+      background: #4facfe;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      cursor: pointer;
+      touch-action: manipulation;
+      min-height: 36px;
+    }
+    .teacher-save-btn:active { transform: scale(0.93); }
+
+    /* Supply list */
+    .supply-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .supply-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #f5f7fa;
+      border-radius: 10px;
+      padding: 10px 12px;
+      min-height: 44px;
+    }
+    .supply-bullet {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .supply-name {
+      flex: 1;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #333;
+    }
+    .supply-del-btn {
+      background: none;
+      border: none;
+      color: #ccc;
+      font-size: 1rem;
+      cursor: pointer;
+      touch-action: manipulation;
+      min-width: 28px;
+      min-height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .supply-del-btn:active { background: #fee; color: #f66; }
+
+    .supply-add-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .supply-input {
+      flex: 1;
+      border: 2px solid #e8eef6;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #333;
+      outline: none;
+      font-family: inherit;
+      min-height: 44px;
+      background: #f5f7fa;
+    }
+    .supply-input:focus { border-color: #4facfe; background: #fff; }
+    .supply-input::placeholder { color: #ccc; font-weight: 500; }
+    .supply-add-btn {
+      background: #4facfe;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.2rem;
+      font-weight: 900;
+      padding: 0 16px;
+      cursor: pointer;
+      min-height: 44px;
+      min-width: 44px;
+      touch-action: manipulation;
+      transition: transform 0.1s, opacity 0.15s;
+    }
+    .supply-add-btn:hover:not(:disabled) { transform: scale(1.07); }
+    .supply-add-btn:active:not(:disabled) { transform: scale(0.93); }
+    .supply-add-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .supply-empty {
+      text-align: center;
+      padding: 18px 0 8px;
+      font-size: 0.9rem;
+      color: #bbb;
+      font-weight: 700;
+    }
+    .supply-count {
+      font-size: 0.78rem;
+      color: #bbb;
+      font-weight: 700;
+      text-align: right;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    const DAYS = ['월', '화', '수', '목', '금'];
+    const PERIODS = [1, 2, 3, 4, 5, 6, 7];
+    const MAX_SUPPLIES = 10;
+    const STORAGE_KEY = 'timetable_v1';
+
+    /* Korean elementary school period schedule */
+    const PERIOD_SCHEDULE = [
+      { period: 1, start: [9,  0],  end: [9,  40] },
+      { period: 2, start: [9,  50], end: [10, 30] },
+      { period: 3, start: [10, 40], end: [11, 20] },
+      { period: 4, start: [11, 30], end: [12, 10] },
+      { period: 5, start: [13, 10], end: [13, 50] },
+      { period: 6, start: [14, 0],  end: [14, 40] },
+      { period: 7, start: [14, 50], end: [15, 30] },
+    ];
+
+    const SUBJECT_ICONS = {
+      '국어': '📖', '수학': '✏️', '영어': '🔤', '과학': '🔬',
+      '사회': '🌏', '체육': '⚽', '음악': '🎵', '미술': '🎨',
+      '도덕': '🌟', '실과': '🌱', '역사': '📜',
+    };
+
+    function getSubjectIcon(name) {
+      return SUBJECT_ICONS[name] || '📚';
+    }
+
+    /* Default sample timetable so the grid is not empty on first load */
+    const DEFAULT_TIMETABLE = {
+      '월-1': { name: '국어',  color: '#FF6B6B' },
+      '월-2': { name: '수학',  color: '#4ECDC4' },
+      '월-3': { name: '영어',  color: '#45B7D1' },
+      '월-4': { name: '사회',  color: '#96CEB4' },
+      '월-5': { name: '체육',  color: '#F7B731', textColor: '#7d5a00' },
+      '월-6': { name: '음악',  color: '#DDA0DD' },
+      '화-1': { name: '수학',  color: '#4ECDC4' },
+      '화-2': { name: '국어',  color: '#FF6B6B' },
+      '화-3': { name: '과학',  color: '#98D8C8' },
+      '화-4': { name: '영어',  color: '#45B7D1' },
+      '화-5': { name: '미술',  color: '#FFB347' },
+      '화-6': { name: '도덕',  color: '#87CEEB' },
+      '화-7': { name: '수학',  color: '#4ECDC4' },
+      '수-1': { name: '영어',  color: '#45B7D1' },
+      '수-2': { name: '사회',  color: '#96CEB4' },
+      '수-3': { name: '국어',  color: '#FF6B6B' },
+      '수-4': { name: '체육',  color: '#F7B731', textColor: '#7d5a00' },
+      '수-5': { name: '과학',  color: '#98D8C8' },
+      '목-1': { name: '국어',  color: '#FF6B6B' },
+      '목-2': { name: '미술',  color: '#FFB347' },
+      '목-3': { name: '수학',  color: '#4ECDC4' },
+      '목-4': { name: '영어',  color: '#45B7D1' },
+      '목-5': { name: '음악',  color: '#DDA0DD' },
+      '목-6': { name: '사회',  color: '#96CEB4' },
+      '금-1': { name: '체육',  color: '#F7B731', textColor: '#7d5a00' },
+      '금-2': { name: '국어',  color: '#FF6B6B' },
+      '금-3': { name: '도덕',  color: '#87CEEB' },
+      '금-4': { name: '수학',  color: '#4ECDC4' },
+      '금-5': { name: '실과',  color: '#C8E6C9', textColor: '#2e6b3c' },
+    };
+
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : {};
+      } catch { return {}; }
+    }
+
+    function saveData(data) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
+    }
+
+    /* Returns the DAYS index of today (0=Mon … 4=Fri), or null on weekends */
+    function getTodayIndex() {
+      const d = new Date().getDay();
+      if (d === 0 || d === 6) return null;
+      return d - 1;
+    }
+
+    /* Returns 1-based period number if currently in class, otherwise null (FR-020) */
+    function getCurrentPeriod() {
+      const now = new Date();
+      const total = now.getHours() * 60 + now.getMinutes();
+      for (const { period, start, end } of PERIOD_SCHEDULE) {
+        if (total >= start[0] * 60 + start[1] && total <= end[0] * 60 + end[1]) {
+          return period;
+        }
+      }
+      return null;
+    }
+
+    /* ── Subject Detail Bottom Sheet (FR-021) ── */
+    function SubjectSheet({ cellKey, subject, extraData, onClose, onSave }) {
+      const [dayLabel, periodStr] = cellKey.split('-');
+      const period = parseInt(periodStr, 10);
+      const saved = extraData[cellKey] || {};
+
+      const [teacher, setTeacher] = useState(saved.teacher || '');
+      const [supplies, setSupplies] = useState(saved.supplies || []);
+      const [newSupply, setNewSupply] = useState('');
+      const inputRef = useRef(null);
+
+      function commitSave(nextSupplies, nextTeacher) {
+        onSave(cellKey, { teacher: nextTeacher.trim(), supplies: nextSupplies });
+      }
+
+      function handleSaveTeacher() {
+        commitSave(supplies, teacher);
+      }
+
+      function handleAddSupply() {
+        const trimmed = newSupply.trim();
+        if (!trimmed || supplies.length >= MAX_SUPPLIES) return;
+        const next = [...supplies, trimmed];
+        setSupplies(next);
+        setNewSupply('');
+        commitSave(next, teacher);
+        inputRef.current?.focus();
+      }
+
+      function handleDeleteSupply(idx) {
+        const next = supplies.filter((_, i) => i !== idx);
+        setSupplies(next);
+        commitSave(next, teacher);
+      }
+
+      return (
+        <>
+          <div className="overlay" onClick={onClose} aria-hidden="true" />
+          <div
+            className="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${subject.name} 상세 정보`}
+          >
+            <div className="sheet-handle" aria-hidden="true" />
+
+            <div
+              className="sheet-banner"
+              style={{ background: `linear-gradient(135deg, ${subject.color}ee, ${subject.color})` }}
+            >
+              <div className="sheet-banner-icon" aria-hidden="true">
+                {getSubjectIcon(subject.name)}
+              </div>
+              <div className="sheet-banner-text">
+                <div className="sheet-subject-name">{subject.name}</div>
+                <div className="sheet-period-info">{dayLabel}요일 {period}교시</div>
+              </div>
+              <button className="sheet-close" onClick={onClose} aria-label="닫기">✕</button>
+            </div>
+
+            <div className="sheet-body">
+              {/* Teacher (FR-021: 담당 교사 선택 입력) */}
+              <div className="section">
+                <div className="section-label">담당 선생님</div>
+                <div className="teacher-input-wrap">
+                  <span className="teacher-icon" aria-hidden="true">👩‍🏫</span>
+                  <input
+                    className="teacher-input"
+                    type="text"
+                    value={teacher}
+                    onChange={e => setTeacher(e.target.value)}
+                    onBlur={handleSaveTeacher}
+                    placeholder="선생님 이름 (선택)"
+                    maxLength={20}
+                    aria-label="담당 선생님 이름"
+                  />
+                  <button
+                    className="teacher-save-btn"
+                    onClick={handleSaveTeacher}
+                    aria-label="선생님 이름 저장"
+                  >저장</button>
+                </div>
+              </div>
+
+              {/* Supplies (FR-021: 등록된 준비물 목록) */}
+              <div className="section">
+                <div className="section-label">준비물</div>
+
+                {supplies.length === 0 ? (
+                  <div className="supply-empty">아직 준비물이 없어요 🎒</div>
+                ) : (
+                  <ul className="supply-list" aria-label="준비물 목록">
+                    {supplies.map((item, idx) => (
+                      <li key={idx} className="supply-item">
+                        <span
+                          className="supply-bullet"
+                          style={{ background: subject.color }}
+                          aria-hidden="true"
+                        />
+                        <span className="supply-name">{item}</span>
+                        <button
+                          className="supply-del-btn"
+                          onClick={() => handleDeleteSupply(idx)}
+                          aria-label={`${item} 삭제`}
+                        >✕</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {supplies.length < MAX_SUPPLIES ? (
+                  <div className="supply-add-row">
+                    <input
+                      ref={inputRef}
+                      className="supply-input"
+                      type="text"
+                      value={newSupply}
+                      onChange={e => setNewSupply(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleAddSupply()}
+                      placeholder="준비물 추가..."
+                      maxLength={20}
+                      aria-label="준비물 입력"
+                    />
+                    <button
+                      className="supply-add-btn"
+                      onClick={handleAddSupply}
+                      disabled={!newSupply.trim()}
+                      aria-label="준비물 추가"
+                    >+</button>
+                  </div>
+                ) : (
+                  <div className="supply-count" aria-live="polite">
+                    최대 {MAX_SUPPLIES}개까지 등록할 수 있어요.
+                  </div>
+                )}
+
+                {supplies.length > 0 && supplies.length < MAX_SUPPLIES && (
+                  <div className="supply-count" aria-live="polite">
+                    {supplies.length}/{MAX_SUPPLIES}
+                  </div>
+                )}
+              </div>
+              <div style={{ height: 24 }} />
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    /* ── Main App ── */
+    function App() {
+      const [extraData, setExtraData] = useState(() => loadData());
+      const [selected, setSelected]   = useState(null);
+
+      /* Refresh current-period highlight every minute (FR-020) */
+      const [tick, setTick] = useState(0);
+      useEffect(() => {
+        const id = setInterval(() => setTick(t => t + 1), 60_000);
+        return () => clearInterval(id);
+      }, []);
+
+      const todayIdx     = getTodayIndex();
+      const todayDay     = todayIdx !== null ? DAYS[todayIdx] : null;
+      const currentPeriod = getCurrentPeriod();
+
+      function handleSave(cellKey, patch) {
+        const next = { ...extraData, [cellKey]: { ...(extraData[cellKey] || {}), ...patch } };
+        setExtraData(next);
+        saveData(next);
+      }
+
+      const selectedSubject = selected ? DEFAULT_TIMETABLE[selected] : null;
+
+      return (
+        <div>
+          <div className="header">
+            <div className="header-title">📅 내 시간표</div>
+            <div className="header-sub">과목을 탭하면 준비물을 확인해요!</div>
+          </div>
+
+          {/* FR-019: Weekly grid Mon~Fri × 1~7 periods */}
+          <div className="grid-wrap">
+            <div className="grid" role="grid" aria-label="주간 시간표">
+
+              {/* Corner */}
+              <div className="grid-head period-head" role="columnheader" aria-label="교시" />
+
+              {/* Day headers — today column highlighted (FR-019) */}
+              {DAYS.map((day, di) => {
+                const isToday = di === todayIdx;
+                return (
+                  <div
+                    key={day}
+                    className={`grid-head day-head${isToday ? ' today' : ''}`}
+                    role="columnheader"
+                    aria-label={`${day}요일${isToday ? ' (오늘)' : ''}`}
+                  >
+                    {day}
+                  </div>
+                );
+              })}
+
+              {/* Period rows */}
+              {PERIODS.map(period => (
+                <React.Fragment key={period}>
+                  <div className="period-label" role="rowheader" aria-label={`${period}교시`}>
+                    {period}
+                  </div>
+
+                  {DAYS.map((day, di) => {
+                    const key      = `${day}-${period}`;
+                    const subj     = DEFAULT_TIMETABLE[key];
+                    const isToday  = di === todayIdx;
+                    /* FR-020: highlight cell if currently in this period */
+                    const isCurrent = isToday && currentPeriod === period;
+                    const cellData  = extraData[key] || {};
+                    const hasSupply = cellData.supplies && cellData.supplies.length > 0;
+
+                    if (!subj) {
+                      return (
+                        <div
+                          key={key}
+                          className="empty-cell"
+                          role="gridcell"
+                          aria-label={`${day}요일 ${period}교시 빈 교시`}
+                        />
+                      );
+                    }
+
+                    return (
+                      <button
+                        key={key}
+                        className={[
+                          'subject-cell',
+                          isToday  ? 'today-col'      : '',
+                          isCurrent ? 'current-period' : '',
+                        ].filter(Boolean).join(' ')}
+                        style={{ background: subj.color, color: subj.textColor || '#fff' }}
+                        onClick={() => setSelected(key)}
+                        role="gridcell"
+                        aria-label={`${day}요일 ${period}교시 ${subj.name}${isCurrent ? ' (현재 수업)' : ''}${hasSupply ? ` 준비물 ${cellData.supplies.length}개` : ''}`}
+                        aria-pressed={selected === key}
+                      >
+                        {hasSupply && <span className="supply-dot" aria-hidden="true" />}
+                        {subj.name}
+                      </button>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+
+          {/* Legend */}
+          <div className="legend" aria-label="범례">
+            <div className="legend-item">
+              <div className="legend-today-badge" aria-hidden="true" />
+              <span>오늘</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-pulse" aria-hidden="true" />
+              <span>현재 수업</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-dot" style={{ background: '#fff', border: '1.5px solid #ccc' }} aria-hidden="true" />
+              <span>준비물 있음</span>
+            </div>
+          </div>
+
+          {/* FR-021: Subject detail bottom sheet */}
+          {selected && selectedSubject && (
+            <SubjectSheet
+              cellKey={selected}
+              subject={selectedSubject}
+              extraData={extraData}
+              onClose={() => setSelected(null)}
+              onSave={handleSave}
+            />
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
