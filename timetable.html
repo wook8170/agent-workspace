@@ -214,73 +214,362 @@
     /* ── 홈 화면 ── */
     .home-screen {
       background: linear-gradient(160deg, #e0f2fe 0%, #bae6fd 40%, #7dd3fc 100%);
+      padding-bottom: 60px;
     }
 
     .profile-badge {
       background: #fff;
       border-radius: 20px;
-      padding: 20px 28px;
+      padding: 16px 24px;
       width: 100%;
-      max-width: 420px;
+      max-width: 480px;
       box-shadow: 0 6px 24px rgba(0,0,0,0.1);
-      text-align: center;
-      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
     }
 
-    .profile-badge .profile-emoji { font-size: 40px; margin-bottom: 8px; }
+    .profile-badge .profile-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .profile-badge .profile-emoji { font-size: 32px; }
 
     .profile-badge .profile-name {
-      font-size: 28px;
+      font-size: 20px;
       font-weight: 900;
       color: #0369a1;
       letter-spacing: -0.5px;
     }
 
     .profile-badge .profile-date {
-      font-size: 13px;
+      font-size: 12px;
       color: #94a3b8;
-      margin-top: 6px;
+      margin-top: 2px;
     }
 
-    .coming-soon-card {
-      background: rgba(255,255,255,0.7);
-      border-radius: 16px;
-      padding: 24px;
+    .btn-reset-profile {
+      background: none;
+      border: 2px solid #fecaca;
+      color: #ef4444;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 6px 12px;
+      cursor: pointer;
+      min-height: 44px;
+      min-width: 44px;
+      transition: background 0.12s;
+      font-family: inherit;
+    }
+    .btn-reset-profile:hover { background: #fff1f0; }
+
+    /* ── 시간표 섹션 ── */
+    .timetable-section {
+      background: rgba(255,255,255,0.95);
+      border-radius: 20px;
+      padding: 16px;
       width: 100%;
-      max-width: 420px;
+      max-width: 480px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.1);
+    }
+
+    .timetable-section-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #0369a1;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ── 시간표 그리드 ── */
+    .grid-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 10px;
+    }
+
+    .schedule-grid {
+      display: grid;
+      grid-template-columns: 36px repeat(5, 1fr);
+      gap: 3px;
+      min-width: 300px;
+    }
+
+    .grid-header {
+      font-size: 13px;
+      font-weight: 900;
+      color: #64748b;
+      text-align: center;
+      padding: 6px 2px;
+      background: #f1f5f9;
+      border-radius: 6px;
+    }
+
+    .grid-period-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 0;
+      background: #f8fafc;
+      border-radius: 6px;
+    }
+
+    .grid-cell {
+      min-height: 52px;
+      border-radius: 8px;
+      border: 2px dashed #e2e8f0;
+      background: #f8fafc;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3px;
+      transition: transform 0.12s, box-shadow 0.12s;
       text-align: center;
     }
 
-    .coming-soon-card .icon { font-size: 36px; margin-bottom: 10px; }
-    .coming-soon-card h3 { font-size: 18px; font-weight: 700; color: #1e40af; margin-bottom: 6px; }
-    .coming-soon-card p { font-size: 14px; color: #64748b; line-height: 1.5; }
+    .grid-cell:hover { transform: scale(1.05); box-shadow: 0 3px 10px rgba(0,0,0,0.12); }
+    .grid-cell:active { transform: scale(0.97); }
 
-    .reset-link {
-      margin-top: 32px;
-      font-size: 13px;
-      color: #94a3b8;
-      cursor: pointer;
-      text-decoration: underline;
-      background: none;
+    .grid-cell.filled {
       border: none;
-      padding: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-    .reset-link:hover { color: #ef4444; }
 
-    /* ── 완료 애니메이션 ── */
+    .cell-name {
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1.3;
+      word-break: keep-all;
+    }
+
+    .cell-plus {
+      font-size: 18px;
+      color: #cbd5e1;
+      line-height: 1;
+    }
+
+    .grid-legend {
+      font-size: 11px;
+      color: #94a3b8;
+      text-align: right;
+      margin-top: 8px;
+      font-weight: 600;
+    }
+
+    /* ── 편집 모달 ── */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 400;
+      padding: 0;
+    }
+
+    @media (min-height: 600px) {
+      .modal-backdrop { align-items: center; padding: 20px; }
+    }
+
+    .modal-box {
+      background: #fff;
+      border-radius: 28px 28px 0 0;
+      padding: 28px 24px 32px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 -8px 40px rgba(0,0,0,0.18);
+      animation: slideUp 0.22s ease-out both;
+    }
+
+    @media (min-height: 600px) {
+      .modal-box {
+        border-radius: 24px;
+        animation: modalIn 0.2s ease-out both;
+      }
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.92) translateY(16px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 900;
+      color: #0369a1;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .modal-label {
+      font-size: 13px;
+      font-weight: 800;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+    }
+
+    .name-input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2.5px solid #e2e8f0;
+      border-radius: 14px;
+      font-size: 17px;
+      font-weight: 700;
+      color: #1e293b;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+    .name-input:focus { border-color: #0ea5e9; }
+    .name-input.over  { border-color: #ef4444; }
+
+    .name-char-count {
+      font-size: 12px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-align: right;
+      margin-top: 4px;
+      margin-bottom: 16px;
+    }
+    .name-char-count.warn { color: #f59e0b; }
+    .name-char-count.over { color: #ef4444; font-weight: 800; }
+
+    /* ── 12색 팔레트 (FR-015) ── */
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .palette-swatch {
+      aspect-ratio: 1;
+      border-radius: 10px;
+      border: 3px solid transparent;
+      cursor: pointer;
+      transition: transform 0.12s, border-color 0.12s;
+      min-width: 40px;
+      min-height: 40px;
+    }
+    .palette-swatch:hover { transform: scale(1.15); }
+    .palette-swatch.active {
+      border-color: #1e293b;
+      transform: scale(1.18);
+      box-shadow: 0 0 0 2px rgba(30,41,59,0.2);
+    }
+
+    /* ── 모달 버튼 ── */
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-modal-cancel {
+      flex: 1;
+      padding: 14px;
+      background: #f1f5f9;
+      color: #64748b;
+      font-size: 15px;
+      font-weight: 800;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      min-height: 52px;
+      transition: background 0.12s;
+      font-family: inherit;
+    }
+    .btn-modal-cancel:hover { background: #e2e8f0; }
+
+    .btn-modal-clear {
+      flex: 1;
+      padding: 14px;
+      background: #fff;
+      color: #ef4444;
+      font-size: 15px;
+      font-weight: 800;
+      border: 2px solid #fecaca;
+      border-radius: 14px;
+      cursor: pointer;
+      min-height: 52px;
+      transition: background 0.12s;
+      font-family: inherit;
+    }
+    .btn-modal-clear:hover { background: #fff1f0; }
+
+    .btn-modal-save {
+      flex: 2;
+      padding: 14px;
+      background: #0369a1;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 900;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      min-height: 52px;
+      transition: background 0.12s;
+      font-family: inherit;
+    }
+    .btn-modal-save:hover:not(:disabled) { background: #0284c7; }
+    .btn-modal-save:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* ── 삭제 확인 다이얼로그 ── */
+    .confirm-icon { font-size: 40px; text-align: center; margin-bottom: 10px; }
+    .confirm-text {
+      font-size: 18px;
+      font-weight: 800;
+      color: #1e293b;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+    .confirm-sub {
+      font-size: 14px;
+      color: #94a3b8;
+      text-align: center;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .btn-danger {
+      flex: 1;
+      padding: 14px;
+      background: #ef4444;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 800;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      min-height: 52px;
+      transition: background 0.12s;
+      font-family: inherit;
+    }
+    .btn-danger:hover { background: #dc2626; }
+
+    /* ── 애니메이션 ── */
     @keyframes popIn {
       0% { transform: scale(0.7); opacity: 0; }
       70% { transform: scale(1.08); }
       100% { transform: scale(1); opacity: 1; }
     }
-
     .pop-in { animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; }
 
     @keyframes slideUp {
       from { transform: translateY(30px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
-
     .slide-up { animation: slideUp 0.35s ease forwards; }
   </style>
 </head>
@@ -288,8 +577,51 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const PROFILE_KEY = 'timetable_profile_v1';
+    const { useState, useCallback } = React;
 
+    /* ── 저장소 키 ── */
+    const PROFILE_KEY = 'timetable_profile_v1';
+    const SLOTS_KEY   = 'timetable_slots_v1';
+
+    /* ── 상수 ── */
+    const DAYS    = ['월', '화', '수', '목', '금'];
+    const PERIODS = ['1교시', '2교시', '3교시', '4교시', '5교시', '6교시', '7교시'];
+
+    /* FR-015: 사전 정의된 12가지 팔레트 */
+    const PALETTE = [
+      { hex: '#FF6B6B', label: '빨강' },
+      { hex: '#FF9F43', label: '주황' },
+      { hex: '#FECA57', label: '노랑' },
+      { hex: '#1DD1A1', label: '초록' },
+      { hex: '#48DBFB', label: '하늘' },
+      { hex: '#54A0FF', label: '파랑' },
+      { hex: '#5F27CD', label: '보라' },
+      { hex: '#FF9FF3', label: '분홍' },
+      { hex: '#C8D6E5', label: '회색' },
+      { hex: '#F368E0', label: '자주' },
+      { hex: '#00D2D3', label: '청록' },
+      { hex: '#EE5A24', label: '다홍' },
+    ];
+
+    const GRADE_COLORS = [
+      '#ef4444', '#f97316', '#eab308',
+      '#22c55e', '#3b82f6', '#a855f7',
+    ];
+    const GRADE_EMOJIS = ['🐣', '🐥', '🦋', '🌻', '🚀', '⭐'];
+
+    /* ── 유틸 ── */
+    function isDarkColor(hex) {
+      const r = parseInt(hex.slice(1,3), 16);
+      const g = parseInt(hex.slice(3,5), 16);
+      const b = parseInt(hex.slice(5,7), 16);
+      return (r * 299 + g * 587 + b * 114) / 1000 < 145;
+    }
+
+    function emptySlots() {
+      return Array.from({ length: 5 }, () => Array(7).fill(null));
+    }
+
+    /* ── 스토리지 ── */
     const ProfileStorage = {
       load() {
         try {
@@ -298,35 +630,49 @@
         } catch { return null; }
       },
       save(profile) {
-        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+        try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch (_) {}
       },
       clear() {
-        localStorage.removeItem(PROFILE_KEY);
+        try { localStorage.removeItem(PROFILE_KEY); } catch (_) {}
       },
     };
 
-    const GRADE_COLORS = [
-      '#ef4444', '#f97316', '#eab308',
-      '#22c55e', '#3b82f6', '#a855f7',
-    ];
-    const GRADE_EMOJIS = ['🐣', '🐥', '🦋', '🌻', '🚀', '⭐'];
+    const SlotStorage = {
+      load() {
+        try {
+          const raw = localStorage.getItem(SLOTS_KEY);
+          if (!raw) return emptySlots();
+          const parsed = JSON.parse(raw);
+          const slots = emptySlots();
+          for (let d = 0; d < 5; d++) {
+            for (let p = 0; p < 7; p++) {
+              const v = parsed?.[d]?.[p];
+              if (v && typeof v.name === 'string' && typeof v.color === 'string') {
+                slots[d][p] = { name: v.name.slice(0, 10), color: v.color };
+              }
+            }
+          }
+          return slots;
+        } catch { return emptySlots(); }
+      },
+      save(slots) {
+        try { localStorage.setItem(SLOTS_KEY, JSON.stringify(slots)); } catch (_) {}
+      },
+      clear() {
+        try { localStorage.removeItem(SLOTS_KEY); } catch (_) {}
+      },
+    };
 
+    /* ── 온보딩 화면 ── */
     function OnboardingScreen({ onComplete }) {
-      const [step, setStep] = React.useState('grade');
-      const [grade, setGrade] = React.useState(null);
-      const [classNo, setClassNo] = React.useState(null);
+      const [step, setStep] = useState('grade');
+      const [grade, setGrade] = useState(null);
+      const [classNo, setClassNo] = useState(null);
 
       const handleGradeSelect = (g) => {
         setGrade(g);
         setClassNo(null);
         setTimeout(() => setStep('class'), 180);
-      };
-
-      const handleClassSelect = (c) => setClassNo(c);
-
-      const handleBack = () => {
-        setStep('grade');
-        setClassNo(null);
       };
 
       const handleSubmit = () => {
@@ -350,7 +696,7 @@
           <div className="onboarding-card slide-up">
             <div className="step-indicator">
               <div className={`step-dot ${step === 'grade' ? 'active' : 'done'}`} />
-              <div className={`step-dot ${step === 'class' ? 'active' : step === 'done' ? 'done' : ''}`} />
+              <div className={`step-dot ${step === 'class' ? 'active' : ''}`} />
             </div>
 
             {step === 'grade' && (
@@ -364,6 +710,7 @@
                       className={`grade-btn${grade === g ? ' selected' : ''}`}
                       style={{ background: GRADE_COLORS[g-1] }}
                       onClick={() => handleGradeSelect(g)}
+                      aria-pressed={grade === g}
                     >
                       <span className="grade-emoji">{GRADE_EMOJIS[g-1]}</span>
                       <span className="grade-name">{g}학년</span>
@@ -386,7 +733,8 @@
                     <button
                       key={c}
                       className={`class-btn${classNo === c ? ' selected' : ''}`}
-                      onClick={() => handleClassSelect(c)}
+                      onClick={() => setClassNo(c)}
+                      aria-pressed={classNo === c}
                     >
                       {c}반
                     </button>
@@ -399,7 +747,10 @@
                 >
                   {classNo ? `${grade}학년 ${classNo}반으로 시작하기 🎉` : '반을 선택해 주세요'}
                 </button>
-                <button className="action-btn secondary" onClick={handleBack}>
+                <button
+                  className="action-btn secondary"
+                  onClick={() => { setStep('grade'); setClassNo(null); }}
+                >
                   ← 학년 다시 선택
                 </button>
               </>
@@ -409,12 +760,203 @@
       );
     }
 
+    /* ── 과목 편집 모달 (FR-015: 과목명 최대 10자 + 12색 팔레트) ── */
+    function EditModal({ day, period, initial, onSave, onClear, onCancel }) {
+      const [name,  setName]  = useState(initial?.name  ?? '');
+      const [color, setColor] = useState(initial?.color ?? PALETTE[0].hex);
+
+      const charCount = name.length;
+      const isOver    = charCount > 10;
+      const canSave   = name.trim().length > 0 && !isOver;
+
+      return (
+        <div
+          className="modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${DAYS[day]}요일 ${PERIODS[period]} 과목 편집`}
+          onClick={e => { if (e.target === e.currentTarget) onCancel(); }}
+        >
+          <div className="modal-box">
+            <div className="modal-title">{DAYS[day]}요일 {PERIODS[period]}</div>
+
+            <div className="modal-label">과목명</div>
+            <input
+              className={`name-input${isOver ? ' over' : ''}`}
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="예: 국어, 수학, 체육…"
+              maxLength={12}
+              autoFocus
+              aria-label="과목명 입력 (최대 10자)"
+            />
+            <div className={`name-char-count${isOver ? ' over' : charCount >= 8 ? ' warn' : ''}`}>
+              {charCount} / 10자{isOver ? ' — 10자를 초과했어요!' : ''}
+            </div>
+
+            <div className="modal-label">색상</div>
+            <div className="palette" role="radiogroup" aria-label="대표 색상 선택">
+              {PALETTE.map(sw => (
+                <button
+                  key={sw.hex}
+                  className={`palette-swatch${color === sw.hex ? ' active' : ''}`}
+                  style={{ background: sw.hex }}
+                  onClick={() => setColor(sw.hex)}
+                  role="radio"
+                  aria-checked={color === sw.hex}
+                  aria-label={sw.label}
+                  title={sw.label}
+                />
+              ))}
+            </div>
+
+            <div className="modal-actions">
+              <button className="btn-modal-cancel" onClick={onCancel}>취소</button>
+              {initial && (
+                <button className="btn-modal-clear" onClick={onClear}>비우기</button>
+              )}
+              <button
+                className="btn-modal-save"
+                onClick={() => canSave && onSave({ name: name.trim(), color })}
+                disabled={!canSave}
+              >
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── 프로필 삭제 확인 ── */
+    function ConfirmDelete({ onConfirm, onCancel }) {
+      return (
+        <div
+          className="modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label="시간표 초기화 확인"
+          onClick={e => { if (e.target === e.currentTarget) onCancel(); }}
+        >
+          <div className="modal-box">
+            <div className="confirm-icon">🗑️</div>
+            <div className="confirm-text">시간표를 초기화할까요?</div>
+            <div className="confirm-sub">
+              등록된 모든 과목과 프로필이 사라져요.<br />이 작업은 되돌릴 수 없어요.
+            </div>
+            <div className="modal-actions">
+              <button className="btn-modal-cancel" onClick={onCancel}>취소</button>
+              <button className="btn-danger" onClick={onConfirm}>초기화</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── 주간 시간표 그리드 ── */
+    function ScheduleGrid({ slots, onCellClick }) {
+      const filledCount = slots.reduce(
+        (acc, day) => acc + day.filter(Boolean).length, 0
+      );
+
+      return (
+        <div>
+          <div className="grid-wrap">
+            <div
+              className="schedule-grid"
+              role="grid"
+              aria-label="주간 시간표 — 월요일부터 금요일, 1교시부터 7교시"
+            >
+              {/* 헤더 행 */}
+              <div className="grid-header" role="columnheader" aria-label="교시" />
+              {DAYS.map(d => (
+                <div key={d} className="grid-header" role="columnheader">{d}</div>
+              ))}
+
+              {/* 교시 행 */}
+              {PERIODS.map((period, pi) => (
+                <React.Fragment key={pi}>
+                  <div className="grid-period-label" role="rowheader" aria-label={period}>
+                    {pi + 1}
+                  </div>
+                  {DAYS.map((_, di) => {
+                    const slot = slots[di][pi];
+                    const dark = slot ? isDarkColor(slot.color) : false;
+                    return (
+                      <button
+                        key={di}
+                        className={`grid-cell${slot ? ' filled' : ''}`}
+                        style={slot ? { background: slot.color } : {}}
+                        onClick={() => onCellClick(di, pi)}
+                        role="gridcell"
+                        aria-label={`${DAYS[di]}요일 ${period}: ${slot ? slot.name + ' — 탭하여 수정' : '비어있음 — 탭하여 추가'}`}
+                      >
+                        {slot ? (
+                          <span
+                            className="cell-name"
+                            style={{ color: dark ? '#fff' : '#1e293b' }}
+                          >
+                            {slot.name}
+                          </span>
+                        ) : (
+                          <span className="cell-plus" aria-hidden="true">+</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+          <div className="grid-legend">{filledCount} / 35 교시 등록됨</div>
+        </div>
+      );
+    }
+
+    /* ── 홈 화면 ── */
     function HomeScreen({ profile, onReset }) {
+      const [slots,      setSlots]      = useState(() => SlotStorage.load());
+      const [editTarget, setEditTarget] = useState(null); // { day, period }
+      const [showDelete, setShowDelete] = useState(false);
+
       const gradeColor = GRADE_COLORS[profile.grade - 1];
       const gradeEmoji = GRADE_EMOJIS[profile.grade - 1];
       const createdDate = new Date(profile.createdAt).toLocaleDateString('ko-KR', {
         year: 'numeric', month: 'long', day: 'numeric',
       });
+
+      const handleSaveSlot = useCallback(({ name, color }) => {
+        if (!editTarget) return;
+        const { day, period } = editTarget;
+        const next = slots.map((d, di) =>
+          di === day ? d.map((s, pi) => pi === period ? { name, color } : s) : d
+        );
+        SlotStorage.save(next);
+        setSlots(next);
+        setEditTarget(null);
+      }, [editTarget, slots]);
+
+      const handleClearSlot = useCallback(() => {
+        if (!editTarget) return;
+        const { day, period } = editTarget;
+        const next = slots.map((d, di) =>
+          di === day ? d.map((s, pi) => pi === period ? null : s) : d
+        );
+        SlotStorage.save(next);
+        setSlots(next);
+        setEditTarget(null);
+      }, [editTarget, slots]);
+
+      const handleDeleteAll = () => {
+        ProfileStorage.clear();
+        SlotStorage.clear();
+        onReset();
+      };
+
+      const editInitial = editTarget
+        ? slots[editTarget.day][editTarget.period]
+        : null;
 
       return (
         <div className="screen home-screen">
@@ -423,33 +965,56 @@
           <div className="app-subtitle" style={{color: '#075985'}}>오늘도 즐거운 학교 생활!</div>
 
           <div className="profile-badge pop-in">
-            <div className="profile-emoji">{gradeEmoji}</div>
-            <div className="profile-name" style={{color: gradeColor}}>
-              {profile.grade}학년 {profile.classNo}반
+            <div className="profile-info">
+              <span className="profile-emoji">{gradeEmoji}</span>
+              <div>
+                <div className="profile-name" style={{color: gradeColor}}>
+                  {profile.grade}학년 {profile.classNo}반
+                </div>
+                <div className="profile-date">등록일: {createdDate}</div>
+              </div>
             </div>
-            <div className="profile-date">프로필 생성: {createdDate}</div>
+            <button
+              className="btn-reset-profile"
+              onClick={() => setShowDelete(true)}
+              aria-label="시간표 초기화"
+            >
+              초기화
+            </button>
           </div>
 
-          <div className="coming-soon-card slide-up">
-            <div className="icon">🗓️</div>
-            <h3>주간 시간표</h3>
-            <p>월~금 수업을 한눈에!<br/>다음 업데이트에서 만나요.</p>
+          <div className="timetable-section slide-up">
+            <div className="timetable-section-title">🗓️ 주간 시간표</div>
+            <ScheduleGrid
+              slots={slots}
+              onCellClick={(d, p) => setEditTarget({ day: d, period: p })}
+            />
           </div>
 
-          <button className="reset-link" onClick={() => {
-            if (window.confirm('프로필을 초기화할까요? 시간표 데이터가 모두 삭제됩니다.')) {
-              ProfileStorage.clear();
-              onReset();
-            }
-          }}>
-            프로필 초기화
-          </button>
+          {editTarget && (
+            <EditModal
+              day={editTarget.day}
+              period={editTarget.period}
+              initial={editInitial}
+              onSave={handleSaveSlot}
+              onClear={handleClearSlot}
+              onCancel={() => setEditTarget(null)}
+            />
+          )}
+
+          {showDelete && (
+            <ConfirmDelete
+              onConfirm={handleDeleteAll}
+              onCancel={() => setShowDelete(false)}
+            />
+          )}
         </div>
       );
     }
 
+    /* ── 앱 루트 ── */
     function App() {
-      const [profile, setProfile] = React.useState(() => ProfileStorage.load());
+      const [profile, setProfile] = useState(() => ProfileStorage.load());
 
       if (!profile) {
         return <OnboardingScreen onComplete={setProfile} />;
