@@ -1,8 +1,27 @@
-# WJA-18 데이터 정의
+# OMS/WMS Data Model Definition v1
 
-## 1. 엔티티 속성 정의
+## 작성자
+- 작성자: 기획자 에이전트
+- 작성일: 2026-04-10
+- 버전: v1.0
 
-### 1.1 OrderHeader
+## 목적 (Purpose)
+OMS/WMS/MDH 연계에 필요한 핵심 엔티티, 유효성, 참조관계를 정의한다.
+
+## 대상 (Audience)
+기획, 데이터/DB, 백엔드, QA
+
+## 목차 (Table of Contents)
+1. 엔티티 속성 정의
+2. ERD
+3. 데이터 유효성 규칙
+4. 마스터 데이터 초기값
+
+## 주요 내용
+
+### 1. 엔티티 속성 정의
+
+#### 1.1 OrderHeader
 | 필드 | 타입 | 길이 | 필수 | 설명 | 유효성 |
 |---|---|---:|---|---|---|
 | order_id | VARCHAR | 36 | Y | 내부 주문 ID | UUID |
@@ -13,7 +32,7 @@
 | priority_score | DECIMAL | 5,2 | Y | 우선순위 점수 | 0~100 |
 | created_at | TIMESTAMP | - | Y | 생성시각 | ISO-8601 |
 
-### 1.2 OrderLine
+#### 1.2 OrderLine
 | 필드 | 타입 | 길이 | 필수 | 설명 | 유효성 |
 |---|---|---:|---|---|---|
 | order_id | VARCHAR | 36 | Y | 주문 ID | FK(OrderHeader) |
@@ -22,7 +41,7 @@
 | qty | INT | - | Y | 수량 | >0 |
 | uom | VARCHAR | 8 | Y | 단위 | 코드값 |
 
-### 1.3 InventoryLedger
+#### 1.3 InventoryLedger
 | 필드 | 타입 | 길이 | 필수 | 설명 | 유효성 |
 |---|---|---:|---|---|---|
 | center_code | VARCHAR | 16 | Y | 센터코드 | MDH 존재 |
@@ -33,7 +52,7 @@
 | in_transit | INT | - | Y | 이동중재고 | >=0 |
 | updated_at | TIMESTAMP | - | Y | 최종갱신시각 | ISO-8601 |
 
-### 1.4 ProductMaster
+#### 1.4 ProductMaster
 | 필드 | 타입 | 길이 | 필수 | 설명 | 유효성 |
 |---|---|---:|---|---|---|
 | sku_code | VARCHAR | 32 | Y | SKU 코드 | PK, 패턴 검증 |
@@ -43,7 +62,7 @@
 | temperature_type | VARCHAR | 16 | N | 온도유형 | CHILLED/FROZEN/AMBIENT |
 | status | VARCHAR | 16 | Y | 상태 | ACTIVE/INACTIVE/DEPRECATED |
 
-## 2. ERD
+### 2. ERD
 ```mermaid
 erDiagram
   OrderHeader ||--o{ OrderLine : contains
@@ -88,30 +107,37 @@ erDiagram
   }
 ```
 
-## 3. 데이터 유효성 규칙
-- 모든 코드형 키: 정규식 `^[A-Z0-9-]+$`
-- 날짜/시간: UTC 저장, API는 ISO-8601 반환
+### 3. 데이터 유효성 규칙
+- 코드형 키 정규식: `^[A-Z0-9-]+$`
+- 시간 저장: UTC 기준, API 응답은 ISO-8601
 - 참조 무결성:
-  - `OrderLine.sku_code`는 `ProductMaster.sku_code`에 존재해야 함
-  - `OrderHeader.customer_code`는 Customer 마스터에 존재해야 함
-- 상태값 변경은 정의된 상태 전이 외 금지
+  - `OrderLine.sku_code`는 `ProductMaster.sku_code`에 존재
+  - `OrderHeader.customer_code`는 Customer 마스터에 존재
+- 상태 변경은 사전 정의 상태 전이 외 금지
 
-## 4. 마스터 데이터 초기값
+### 4. 마스터 데이터 초기값
 
-### 4.1 Product
+#### 4.1 Product
 | sku_code | sku_name | category | uom | status |
 |---|---|---|---|---|
 | SKU-APPLE-01 | Apple 1kg Box | FRUIT | EA | ACTIVE |
 | SKU-BANANA-01 | Banana 1kg Box | FRUIT | EA | ACTIVE |
 
-### 4.2 FulfillmentCenter
+#### 4.2 FulfillmentCenter
 | center_code | region | cutoff_time | capacity_limit | status |
 |---|---|---|---:|---|
 | FC-SEOUL-01 | KR-SEOUL | 17:00:00 | 200000 | ACTIVE |
 | FC-BUSAN-01 | KR-BUSAN | 16:00:00 | 120000 | ACTIVE |
 
-### 4.3 Customer
+#### 4.3 Customer
 | customer_code | customer_name | tier | status |
 |---|---|---|---|
 | CUST-001 | Alpha Retail | VIP | ACTIVE |
 | CUST-002 | Beta Mart | STANDARD | ACTIVE |
+
+## 변경 이력 (Change Log)
+- v1.0 (2026-04-10): WJA-23 정책 형식으로 문서 재정비
+
+## 승인 현황 (Approvals)
+- [ ] PM 검토
+- [ ] 데이터/개발 검토
