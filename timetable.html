@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>📅 초등학생 시간표</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #4C6EF5;
+      --primary-light: #748FFC;
+      --bg: #F8F9FF;
+      --surface: #FFFFFF;
+      --text: #1A1A2E;
+      --text-secondary: #6B7280;
+      --border: #E5E7EB;
+      --radius: 16px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    #root {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      max-width: 430px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    /* ── Onboarding ── */
+    .onboarding {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+      background: linear-gradient(160deg, #E8EEFF 0%, #F8F9FF 100%);
+    }
+
+    .onboarding-emoji { font-size: 72px; margin-bottom: 16px; }
+    .onboarding-title {
+      font-size: 26px; font-weight: 900; color: var(--text);
+      margin-bottom: 8px; text-align: center;
+    }
+    .onboarding-sub {
+      font-size: 15px; color: var(--text-secondary);
+      margin-bottom: 40px; text-align: center; line-height: 1.6;
+    }
+
+    .picker-group { width: 100%; margin-bottom: 24px; }
+    .picker-label {
+      font-size: 14px; font-weight: 700; color: var(--text-secondary);
+      margin-bottom: 12px; letter-spacing: 0.02em;
+    }
+
+    .grade-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+
+    .grade-btn {
+      aspect-ratio: 1;
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      background: white;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      min-height: 52px;
+    }
+    .grade-btn.selected {
+      background: var(--primary); border-color: var(--primary);
+      color: white; transform: scale(1.05);
+    }
+
+    .class-scroll {
+      display: flex; gap: 8px;
+      overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;
+    }
+    .class-scroll::-webkit-scrollbar { display: none; }
+
+    .class-btn {
+      flex-shrink: 0; min-width: 52px; height: 52px;
+      border: 2px solid var(--border); border-radius: 14px;
+      background: white; font-size: 14px; font-weight: 700;
+      color: var(--text); cursor: pointer; transition: all 0.15s;
+    }
+    .class-btn.selected {
+      background: var(--primary); border-color: var(--primary); color: white;
+    }
+
+    .btn-primary {
+      width: 100%; height: 56px; border: none; border-radius: 18px;
+      background: var(--primary); color: white;
+      font-size: 17px; font-weight: 800; cursor: pointer;
+      transition: all 0.15s; margin-top: 8px;
+    }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary:not(:disabled):active { transform: scale(0.97); }
+
+    /* ── Main layout ── */
+    .main-layout { display: flex; flex-direction: column; min-height: 100vh; }
+
+    .screen {
+      flex: 1; overflow-y: auto;
+      padding: 0 0 calc(80px + var(--safe-bottom)) 0;
+    }
+
+    /* ── Screen header ── */
+    .screen-header {
+      padding: 56px 20px 20px; background: white;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .screen-header h1 { font-size: 22px; font-weight: 900; }
+    .screen-header .sub { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+    /* ── Home hero ── */
+    .home-hero {
+      background: linear-gradient(135deg, #4C6EF5 0%, #748FFC 100%);
+      padding: 56px 20px 28px; color: white;
+    }
+    .home-greeting { font-size: 14px; opacity: 0.85; margin-bottom: 4px; }
+
+    .home-profile-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.2); border-radius: 30px;
+      padding: 4px 12px 4px 4px; font-size: 13px; font-weight: 600;
+      margin-bottom: 20px;
+    }
+    .home-profile-badge .dot {
+      width: 24px; height: 24px; background: white; border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 11px; color: var(--primary); font-weight: 900;
+    }
+
+    .today-card {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: var(--radius); padding: 16px;
+    }
+    .today-card-label { font-size: 12px; opacity: 0.8; margin-bottom: 8px; font-weight: 600; letter-spacing: 0.04em; }
+    .today-card-date { font-size: 18px; font-weight: 800; margin-bottom: 12px; }
+
+    .today-stats { display: flex; gap: 16px; }
+    .today-stat { text-align: center; }
+    .today-stat-num { font-size: 28px; font-weight: 900; line-height: 1; }
+    .today-stat-label { font-size: 11px; opacity: 0.75; margin-top: 2px; }
+    .today-divider { width: 1px; background: rgba(255,255,255,0.3); align-self: stretch; }
+
+    .today-next {
+      margin-top: 12px; padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.2); font-size: 14px;
+    }
+    .today-next-label { opacity: 0.75; font-size: 12px; }
+    .today-next-subj { font-weight: 800; font-size: 17px; margin-top: 2px; }
+
+    /* ── Weekly grid ── */
+    .section-title { font-size: 16px; font-weight: 800; color: var(--text); padding: 20px 20px 12px; }
+    .weekly-grid-wrapper { padding: 0 12px 20px; }
+
+    .weekly-grid {
+      border-radius: var(--radius); overflow: hidden;
+      border: 1px solid var(--border); background: white;
+    }
+    .grid-header { display: grid; grid-template-columns: 32px repeat(5, 1fr); background: #F3F4F6; }
+    .grid-header-cell {
+      padding: 10px 4px; text-align: center;
+      font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    }
+    .grid-header-cell.today { color: var(--primary); }
+
+    .grid-row { display: grid; grid-template-columns: 32px repeat(5, 1fr); border-top: 1px solid var(--border); }
+    .grid-period-label {
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: var(--text-secondary);
+      background: #F9FAFB; border-right: 1px solid var(--border); padding: 2px;
+    }
+    .grid-cell {
+      border-right: 1px solid var(--border);
+      min-height: 44px; display: flex; align-items: center; justify-content: center;
+      padding: 3px; cursor: pointer; transition: background 0.1s;
+    }
+    .grid-cell:last-child { border-right: none; }
+    .grid-cell:active { background: #F3F4F6; }
+    .grid-cell.today-col { background: #EEF2FF; }
+
+    .subject-chip {
+      width: 100%; height: 100%; min-height: 38px;
+      border-radius: 8px; display: flex; align-items: center;
+      justify-content: center; font-size: 10px; font-weight: 700;
+      color: white; text-align: center; line-height: 1.2; padding: 2px;
+    }
+
+    /* ── Bottom Nav ── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 430px; background: white;
+      border-top: 1px solid var(--border);
+      display: flex; padding-bottom: var(--safe-bottom); z-index: 100;
+    }
+    .nav-btn {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      height: 64px; border: none; background: none; cursor: pointer;
+      color: var(--text-secondary); font-size: 10px; font-weight: 600;
+      gap: 3px; transition: color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-btn.active { color: var(--primary); }
+    .nav-icon { font-size: 22px; }
+
+    /* ── Schedule screen ── */
+    .day-tabs { display: flex; gap: 6px; padding: 16px 20px; overflow-x: auto; scrollbar-width: none; }
+    .day-tabs::-webkit-scrollbar { display: none; }
+
+    .day-tab {
+      flex-shrink: 0; padding: 8px 16px; border-radius: 30px;
+      border: 2px solid var(--border); background: white;
+      font-size: 14px; font-weight: 700; color: var(--text-secondary);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .day-tab.active { background: var(--primary); border-color: var(--primary); color: white; }
+
+    .period-list { padding: 0 20px; display: flex; flex-direction: column; gap: 10px; }
+
+    .period-row {
+      display: flex; align-items: center; gap: 12px;
+      background: white; border-radius: var(--radius);
+      padding: 12px 14px; border: 1px solid var(--border);
+    }
+    .period-num {
+      width: 32px; height: 32px; border-radius: 10px;
+      background: #F3F4F6; display: grid; place-items: center;
+      font-size: 13px; font-weight: 800; flex-shrink: 0;
+    }
+    .period-info { flex: 1; min-width: 0; }
+    .period-time { font-size: 11px; color: var(--text-secondary); }
+    .period-subj {
+      font-size: 16px; font-weight: 700; margin-top: 1px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .period-subj.empty { color: var(--text-secondary); font-weight: 500; font-size: 14px; }
+    .period-color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .period-edit-btn {
+      width: 36px; height: 36px; border-radius: 10px;
+      border: 1px solid var(--border); background: white;
+      font-size: 15px; cursor: pointer; display: grid; place-items: center; flex-shrink: 0;
+    }
+
+    /* ── Subject screen ── */
+    .subject-list { padding: 0 20px; display: flex; flex-direction: column; gap: 10px; }
+    .subject-row {
+      display: flex; align-items: center; gap: 12px;
+      background: white; border-radius: var(--radius);
+      padding: 12px 14px; border: 1px solid var(--border);
+    }
+    .subject-color-block { width: 10px; height: 40px; border-radius: 4px; flex-shrink: 0; }
+    .subject-info { flex: 1; }
+    .subject-name { font-size: 16px; font-weight: 700; }
+    .subject-teacher { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+    .icon-btn {
+      width: 36px; height: 36px; border-radius: 10px;
+      border: 1px solid var(--border); background: white;
+      font-size: 15px; cursor: pointer; display: grid; place-items: center;
+    }
+    .add-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; height: 52px; border: 2px dashed var(--border);
+      border-radius: var(--radius); background: none;
+      font-size: 15px; font-weight: 600; color: var(--text-secondary);
+      cursor: pointer; transition: all 0.15s; margin-top: 4px;
+    }
+    .add-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* ── Supply screen ── */
+    .supply-subject-tabs { display: flex; gap: 8px; padding: 16px 20px; overflow-x: auto; scrollbar-width: none; }
+    .supply-subject-tabs::-webkit-scrollbar { display: none; }
+
+    .supply-subject-tab {
+      flex-shrink: 0; display: flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: 30px; border: 2px solid var(--border);
+      background: white; font-size: 13px; font-weight: 700;
+      color: var(--text-secondary); cursor: pointer; transition: all 0.15s;
+    }
+    .supply-subject-tab.active { border-color: transparent; color: white; }
+
+    .supply-list { padding: 0 20px; display: flex; flex-direction: column; gap: 8px; }
+    .supply-item {
+      display: flex; align-items: center; gap: 12px; background: white;
+      border-radius: var(--radius); padding: 14px; border: 1px solid var(--border);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .supply-item.checked { background: #F0FDF4; border-color: #6EE7B7; }
+    .supply-checkbox {
+      width: 24px; height: 24px; border-radius: 8px; border: 2px solid var(--border);
+      display: grid; place-items: center; flex-shrink: 0; font-size: 13px; transition: all 0.15s;
+    }
+    .supply-item.checked .supply-checkbox { background: #10B981; border-color: #10B981; color: white; }
+    .supply-text { flex: 1; font-size: 15px; font-weight: 600; }
+    .supply-item.checked .supply-text { text-decoration: line-through; color: var(--text-secondary); }
+
+    /* ── Settings screen ── */
+    .settings-section { padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+    .settings-label { font-size: 12px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.05em; margin-bottom: 4px; padding-left: 4px; }
+    .settings-card { background: white; border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+    .settings-row {
+      display: flex; align-items: center; padding: 16px; gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-row-icon { font-size: 20px; width: 28px; text-align: center; }
+    .settings-row-info { flex: 1; }
+    .settings-row-title { font-size: 15px; font-weight: 600; }
+    .settings-row-sub { font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
+    .settings-row-value { font-size: 14px; color: var(--text-secondary); font-weight: 600; }
+
+    /* ── Modal sheet ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+      z-index: 200; display: flex; align-items: flex-end; justify-content: center;
+      animation: fadeIn 0.2s;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .modal-sheet {
+      width: 100%; max-width: 430px; background: white;
+      border-radius: 24px 24px 0 0;
+      padding: 12px 24px calc(32px + var(--safe-bottom));
+      animation: slideUp 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+      max-height: 80vh; overflow-y: auto;
+    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+    .sheet-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+    .sheet-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-label { font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; display: block; }
+    .form-input {
+      width: 100%; height: 52px; border: 2px solid var(--border);
+      border-radius: 14px; padding: 0 16px; font-size: 16px;
+      font-family: inherit; outline: none; transition: border-color 0.15s;
+    }
+    .form-input:focus { border-color: var(--primary); }
+
+    .color-picker { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+    .color-swatch { aspect-ratio: 1; border-radius: 12px; border: 3px solid transparent; cursor: pointer; transition: all 0.15s; }
+    .color-swatch.selected { border-color: var(--text); transform: scale(1.15); }
+
+    .subject-picker { display: flex; flex-direction: column; gap: 8px; }
+    .subject-option {
+      display: flex; align-items: center; gap: 12px; padding: 12px;
+      border-radius: var(--radius); border: 2px solid var(--border);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .subject-option.selected { border-color: var(--primary); background: #EEF2FF; }
+    .subject-option-dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; }
+    .subject-option-name { font-size: 15px; font-weight: 600; }
+
+    .btn-danger {
+      width: 100%; height: 48px; border: 2px solid #FEE2E2;
+      border-radius: 14px; background: white; color: #EF4444;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+    }
+
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 60px 24px; text-align: center; color: var(--text-secondary);
+    }
+    .empty-state-emoji { font-size: 48px; margin-bottom: 12px; }
+    .empty-state-text { font-size: 15px; font-weight: 600; margin-bottom: 4px; color: var(--text); }
+    .empty-state-sub { font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useCallback } = React;
+
+    // ── Constants ──
+    const PALETTE = [
+      '#4C6EF5', '#748FFC', '#FF6B6B', '#FF9F43',
+      '#FECA57', '#1DD1A1', '#48DBFB', '#5F27CD',
+      '#FF9FF3', '#10AC84', '#EE5A24', '#576574',
+    ];
+
+    const DAYS = ['월', '화', '수', '목', '금'];
+    const PERIOD_TIMES = ['09:00', '09:50', '10:50', '11:40', '13:30', '14:20', '15:10'];
+    const PERIODS = PERIOD_TIMES.length;
+    const STORAGE_KEY = 'timetable_v1';
+
+    // ── Storage ──
+    function loadState() {
+      try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : null; }
+      catch { return null; }
+    }
+    function saveState(s) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {} }
+    function makeId() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+
+    // ── Date helpers ──
+    // Returns 1 (Mon) – 5 (Fri), or null on weekends
+    function todayDOW() { const d = new Date().getDay(); return (d >= 1 && d <= 5) ? d : null; }
+
+    function todayLabel() {
+      const d = new Date();
+      const dow = d.getDay();
+      const dayName = (dow >= 1 && dow <= 5) ? DAYS[dow - 1] : null;
+      return `${d.getMonth() + 1}월 ${d.getDate()}일${dayName ? ` (${dayName})` : ''}`;
+    }
+
+    function isToday(dayOfWeek) { return new Date().getDay() === dayOfWeek; }
+
+    function nowMinutes() { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); }
+
+    // ── Initial state ──
+    function initState(grade, classNo) {
+      return {
+        profile: { grade, classNo },
+        subjects: [],
+        // schedule[d][p] = { dayOfWeek:1-5, period:1-7, subjectId:string|null }
+        schedule: Array.from({ length: 5 }, (_, d) =>
+          Array.from({ length: PERIODS }, (_, p) => ({ dayOfWeek: d + 1, period: p + 1, subjectId: null }))
+        ),
+        // { id, subjectId, name, checkedDate:string|null }
+        supplies: [],
+      };
+    }
+
+    // ── App root ──
+    function App() {
+      const [state, setState] = useState(() => loadState());
+      useEffect(() => { if (state) saveState(state); }, [state]);
+
+      if (!state) return <Onboarding onCreate={(g, c) => setState(initState(g, c))} />;
+      return <MainApp state={state} setState={setState} />;
+    }
+
+    // ── Onboarding ──
+    function Onboarding({ onCreate }) {
+      const [grade, setGrade] = useState(null);
+      const [classNo, setClassNo] = useState(null);
+
+      return (
+        <div className="onboarding">
+          <div className="onboarding-emoji">📅</div>
+          <h1 className="onboarding-title">시간표 앱에<br />오신 것을 환영해요!</h1>
+          <p className="onboarding-sub">학년과 반을 선택하면<br />바로 시작할 수 있어요.</p>
+
+          <div className="picker-group">
+            <div className="picker-label">학년 선택</div>
+            <div className="grade-grid">
+              {[1, 2, 3, 4, 5, 6].map(g => (
+                <button
+                  key={g}
+                  className={`grade-btn${grade === g ? ' selected' : ''}`}
+                  onClick={() => setGrade(g)}
+                >
+                  {g}학년
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="picker-group">
+            <div className="picker-label">반 선택</div>
+            <div className="class-scroll">
+              {Array.from({ length: 15 }, (_, i) => i + 1).map(c => (
+                <button
+                  key={c}
+                  className={`class-btn${classNo === c ? ' selected' : ''}`}
+                  onClick={() => setClassNo(c)}
+                >
+                  {c}반
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            className="btn-primary"
+            disabled={!grade || !classNo}
+            onClick={() => onCreate(grade, classNo)}
+          >
+            시작하기 🎉
+          </button>
+        </div>
+      );
+    }
+
+    // ── MainApp ──
+    function MainApp({ state, setState }) {
+      const [tab, setTab] = useState('home');
+      const [modal, setModal] = useState(null);
+
+      const update = useCallback(fn => setState(prev => ({ ...prev, ...fn(prev) })), [setState]);
+
+      const NAV = [
+        { id: 'home',     icon: '🏠', label: '홈' },
+        { id: 'schedule', icon: '📋', label: '시간표' },
+        { id: 'subject',  icon: '📚', label: '과목' },
+        { id: 'supply',   icon: '🎒', label: '준비물' },
+        { id: 'settings', icon: '⚙️', label: '설정' },
+      ];
+
+      function openSlot(d, p) { setModal({ type: 'slot', d, p }); }
+
+      return (
+        <div className="main-layout">
+          <div className="screen">
+            {tab === 'home' && <HomeScreen state={state} onCellPress={openSlot} />}
+            {tab === 'schedule' && <ScheduleScreen state={state} onEdit={openSlot} />}
+            {tab === 'subject' && (
+              <SubjectScreen
+                state={state}
+                onAdd={() => setModal({ type: 'subject', subject: null })}
+                onEdit={s => setModal({ type: 'subject', subject: s })}
+              />
+            )}
+            {tab === 'supply' && (
+              <SupplyScreen
+                state={state}
+                update={update}
+                onAdd={subjectId => setModal({ type: 'supply', subjectId })}
+              />
+            )}
+            {tab === 'settings' && <SettingsScreen state={state} onReset={() => setState(null)} />}
+          </div>
+
+          <nav className="bottom-nav">
+            {NAV.map(n => (
+              <button
+                key={n.id}
+                className={`nav-btn${tab === n.id ? ' active' : ''}`}
+                onClick={() => setTab(n.id)}
+              >
+                <span className="nav-icon">{n.icon}</span>
+                {n.label}
+              </button>
+            ))}
+          </nav>
+
+          {modal?.type === 'slot' && (
+            <SlotModal
+              state={state}
+              dayOfWeek={modal.d}
+              period={modal.p}
+              onClose={() => setModal(null)}
+              onSave={subjectId => {
+                update(prev => {
+                  const schedule = prev.schedule.map(day => [...day]);
+                  schedule[modal.d - 1] = [...schedule[modal.d - 1]];
+                  schedule[modal.d - 1][modal.p - 1] = { dayOfWeek: modal.d, period: modal.p, subjectId };
+                  return { schedule };
+                });
+                setModal(null);
+              }}
+            />
+          )}
+
+          {modal?.type === 'subject' && (
+            <SubjectModal
+              subject={modal.subject}
+              onClose={() => setModal(null)}
+              onSave={(name, colorHex, teacherName) => {
+                update(prev => {
+                  if (modal.subject) {
+                    return { subjects: prev.subjects.map(s => s.id === modal.subject.id ? { ...s, name, colorHex, teacherName } : s) };
+                  }
+                  return { subjects: [...prev.subjects, { id: makeId(), name, colorHex, teacherName }] };
+                });
+                setModal(null);
+              }}
+              onDelete={modal.subject ? () => {
+                const id = modal.subject.id;
+                update(prev => ({
+                  subjects: prev.subjects.filter(s => s.id !== id),
+                  schedule: prev.schedule.map(day => day.map(slot => slot.subjectId === id ? { ...slot, subjectId: null } : slot)),
+                  supplies: prev.supplies.filter(su => su.subjectId !== id),
+                }));
+                setModal(null);
+              } : null}
+            />
+          )}
+
+          {modal?.type === 'supply' && (
+            <SupplyModal
+              onClose={() => setModal(null)}
+              onSave={name => {
+                update(prev => ({ supplies: [...prev.supplies, { id: makeId(), subjectId: modal.subjectId, name, checkedDate: null }] }));
+                setModal(null);
+              }}
+            />
+          )}
+        </div>
+      );
+    }
+
+    // ── HomeScreen ──
+    function HomeScreen({ state, onCellPress }) {
+      const { profile, subjects, schedule } = state;
+      const dow = todayDOW();
+      const todaySlots = dow ? schedule[dow - 1] : [];
+      const todaySubjects = todaySlots.map(slot => slot.subjectId ? subjects.find(s => s.id === slot.subjectId) || null : null);
+      const totalPeriods = todaySubjects.filter(Boolean).length;
+
+      const nowMin = nowMinutes();
+      const periodMins = PERIOD_TIMES.map(t => { const [h, m] = t.split(':'); return +h * 60 + +m; });
+      const nextIdx = periodMins.findIndex(m => m > nowMin);
+      const nextSubject = nextIdx >= 0 && todaySubjects[nextIdx] ? todaySubjects[nextIdx] : null;
+      const donePeriods = nextIdx >= 0 ? nextIdx : PERIODS;
+      const remainPeriods = Math.max(0, totalPeriods - Math.min(donePeriods, PERIODS));
+
+      return (
+        <div>
+          <div className="home-hero">
+            <div className="home-greeting">안녕하세요! 👋</div>
+            <div className="home-profile-badge">
+              <span className="dot">{profile.grade}</span>
+              {profile.grade}학년 {profile.classNo}반
+            </div>
+            <div className="today-card">
+              <div className="today-card-label">오늘의 수업</div>
+              <div className="today-card-date">{todayLabel()}</div>
+              {dow ? (
+                <>
+                  <div className="today-stats">
+                    <div className="today-stat">
+                      <div className="today-stat-num">{totalPeriods}</div>
+                      <div className="today-stat-label">전체 교시</div>
+                    </div>
+                    <div className="today-divider" />
+                    <div className="today-stat">
+                      <div className="today-stat-num">{remainPeriods}</div>
+                      <div className="today-stat-label">남은 교시</div>
+                    </div>
+                  </div>
+                  {nextSubject && (
+                    <div className="today-next">
+                      <div className="today-next-label">다음 수업</div>
+                      <div className="today-next-subj">{nextSubject.name}</div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ fontSize: 14, opacity: 0.85, marginTop: 4 }}>오늘은 쉬는 날이에요 🎉</div>
+              )}
+            </div>
+          </div>
+
+          <div className="section-title">이번 주 시간표</div>
+          <div className="weekly-grid-wrapper">
+            <div className="weekly-grid">
+              <div className="grid-header">
+                <div className="grid-header-cell" />
+                {DAYS.map((d, i) => (
+                  <div key={d} className={`grid-header-cell${isToday(i + 1) ? ' today' : ''}`}>{d}</div>
+                ))}
+              </div>
+              {Array.from({ length: PERIODS }, (_, p) => (
+                <div key={p} className="grid-row">
+                  <div className="grid-period-label">{p + 1}</div>
+                  {schedule.map((daySlots, d) => {
+                    const slot = daySlots[p];
+                    const subj = slot.subjectId ? subjects.find(s => s.id === slot.subjectId) : null;
+                    return (
+                      <div
+                        key={d}
+                        className={`grid-cell${isToday(d + 1) ? ' today-col' : ''}`}
+                        onClick={() => onCellPress(d + 1, p + 1)}
+                      >
+                        {subj && (
+                          <div className="subject-chip" style={{ background: subj.colorHex }}>
+                            {subj.name}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── ScheduleScreen ──
+    function ScheduleScreen({ state, onEdit }) {
+      const { subjects, schedule } = state;
+      const dow = todayDOW();
+      const [day, setDay] = useState(dow || 1);
+
+      return (
+        <div>
+          <div className="screen-header">
+            <h1>시간표</h1>
+            <div className="sub">요일을 선택하고 과목을 설정하세요</div>
+          </div>
+          <div className="day-tabs">
+            {DAYS.map((d, i) => (
+              <button
+                key={d}
+                className={`day-tab${day === i + 1 ? ' active' : ''}`}
+                onClick={() => setDay(i + 1)}
+              >
+                {isToday(i + 1) ? `${d} (오늘)` : d}
+              </button>
+            ))}
+          </div>
+          <div className="period-list">
+            {schedule[day - 1].map((slot, p) => {
+              const subj = slot.subjectId ? subjects.find(s => s.id === slot.subjectId) : null;
+              return (
+                <div key={p} className="period-row">
+                  <div
+                    className="period-num"
+                    style={subj ? { background: subj.colorHex + '30', color: subj.colorHex } : {}}
+                  >
+                    {p + 1}
+                  </div>
+                  <div className="period-info">
+                    <div className="period-time">{PERIOD_TIMES[p]}</div>
+                    <div className={`period-subj${subj ? '' : ' empty'}`}>
+                      {subj ? subj.name : '비어 있음'}
+                    </div>
+                  </div>
+                  {subj && <div className="period-color-dot" style={{ background: subj.colorHex }} />}
+                  <button className="period-edit-btn" onClick={() => onEdit(day, p + 1)}>✏️</button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    // ── SubjectScreen ──
+    function SubjectScreen({ state, onAdd, onEdit }) {
+      const { subjects } = state;
+      return (
+        <div>
+          <div className="screen-header">
+            <h1>과목 관리</h1>
+            <div className="sub">과목명과 색상을 설정하세요</div>
+          </div>
+          <div className="subject-list" style={{ paddingTop: 16 }}>
+            {subjects.length === 0 && (
+              <div className="empty-state">
+                <div className="empty-state-emoji">📚</div>
+                <div className="empty-state-text">등록된 과목이 없어요</div>
+                <div className="empty-state-sub">아래 버튼을 눌러 과목을 추가해 보세요</div>
+              </div>
+            )}
+            {subjects.map(s => (
+              <div key={s.id} className="subject-row">
+                <div className="subject-color-block" style={{ background: s.colorHex }} />
+                <div className="subject-info">
+                  <div className="subject-name">{s.name}</div>
+                  {s.teacherName && <div className="subject-teacher">👩‍🏫 {s.teacherName} 선생님</div>}
+                </div>
+                <button className="icon-btn" onClick={() => onEdit(s)}>✏️</button>
+              </div>
+            ))}
+            {subjects.length < 20 && (
+              <button className="add-btn" onClick={onAdd}>+ 과목 추가</button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ── SupplyScreen ──
+    function SupplyScreen({ state, update, onAdd }) {
+      const { subjects, supplies } = state;
+      const [selSubj, setSelSubj] = useState(null);
+      const today = new Date().toDateString();
+
+      const filteredSupplies = selSubj ? supplies.filter(su => su.subjectId === selSubj) : [];
+
+      function toggleSupply(id) {
+        update(prev => ({
+          supplies: prev.supplies.map(su =>
+            su.id === id ? { ...su, checkedDate: su.checkedDate === today ? null : today } : su
+          ),
+        }));
+      }
+      function deleteSupply(id) {
+        update(prev => ({ supplies: prev.supplies.filter(su => su.id !== id) }));
+      }
+
+      return (
+        <div>
+          <div className="screen-header">
+            <h1>준비물</h1>
+            <div className="sub">과목별 준비물을 확인하세요</div>
+          </div>
+          {subjects.length === 0 ? (
+            <div className="empty-state" style={{ paddingTop: 60 }}>
+              <div className="empty-state-emoji">🎒</div>
+              <div className="empty-state-text">먼저 과목을 등록해 주세요</div>
+            </div>
+          ) : (
+            <>
+              <div className="supply-subject-tabs">
+                {subjects.map(s => (
+                  <button
+                    key={s.id}
+                    className={`supply-subject-tab${selSubj === s.id ? ' active' : ''}`}
+                    style={selSubj === s.id ? { background: s.colorHex } : {}}
+                    onClick={() => setSelSubj(selSubj === s.id ? null : s.id)}
+                  >
+                    <span style={{
+                      width: 8, height: 8, borderRadius: '50%',
+                      background: selSubj === s.id ? 'white' : s.colorHex,
+                      display: 'inline-block', flexShrink: 0,
+                    }} />
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+              {!selSubj ? (
+                <div className="empty-state">
+                  <div className="empty-state-emoji">👆</div>
+                  <div className="empty-state-text">과목을 선택해 주세요</div>
+                </div>
+              ) : (
+                <div className="supply-list">
+                  {filteredSupplies.length === 0 && (
+                    <div className="empty-state" style={{ padding: '40px 0' }}>
+                      <div className="empty-state-emoji">✅</div>
+                      <div className="empty-state-text">등록된 준비물이 없어요</div>
+                    </div>
+                  )}
+                  {filteredSupplies.map(su => {
+                    const checked = su.checkedDate === today;
+                    return (
+                      <div key={su.id} className={`supply-item${checked ? ' checked' : ''}`} onClick={() => toggleSupply(su.id)}>
+                        <div className="supply-checkbox">{checked ? '✓' : ''}</div>
+                        <div className="supply-text">{su.name}</div>
+                        <button
+                          className="icon-btn"
+                          style={{ border: 'none', background: 'none' }}
+                          onClick={e => { e.stopPropagation(); deleteSupply(su.id); }}
+                        >🗑️</button>
+                      </div>
+                    );
+                  })}
+                  {filteredSupplies.length < 10 && (
+                    <button className="add-btn" onClick={() => onAdd(selSubj)}>+ 준비물 추가</button>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      );
+    }
+
+    // ── SettingsScreen ──
+    function SettingsScreen({ state, onReset }) {
+      const { profile } = state;
+      const [confirmReset, setConfirmReset] = useState(false);
+      return (
+        <div>
+          <div className="screen-header"><h1>설정</h1></div>
+          <div className="settings-section">
+            <div className="settings-label">내 정보</div>
+            <div className="settings-card">
+              <div className="settings-row">
+                <span className="settings-row-icon">🏫</span>
+                <div className="settings-row-info"><div className="settings-row-title">학년 / 반</div></div>
+                <div className="settings-row-value">{profile.grade}학년 {profile.classNo}반</div>
+              </div>
+            </div>
+            <div className="settings-label" style={{ marginTop: 12 }}>앱 정보</div>
+            <div className="settings-card">
+              <div className="settings-row">
+                <span className="settings-row-icon">📅</span>
+                <div className="settings-row-info">
+                  <div className="settings-row-title">초등학생 시간표</div>
+                  <div className="settings-row-sub">v1.0 — POMO-17</div>
+                </div>
+              </div>
+              <div className="settings-row">
+                <span className="settings-row-icon">💾</span>
+                <div className="settings-row-info">
+                  <div className="settings-row-title">저장 방식</div>
+                  <div className="settings-row-sub">기기 로컬 저장 (오프라인 동작)</div>
+                </div>
+              </div>
+            </div>
+            <div style={{ marginTop: 12 }}>
+              {!confirmReset ? (
+                <button className="btn-danger" onClick={() => setConfirmReset(true)}>데이터 초기화</button>
+              ) : (
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button className="btn-danger" style={{ flex: 1 }} onClick={onReset}>확인 (삭제)</button>
+                  <button
+                    style={{ flex: 1, height: 48, borderRadius: 14, border: '2px solid #E5E7EB', background: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
+                    onClick={() => setConfirmReset(false)}
+                  >취소</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── SlotModal ──
+    function SlotModal({ state, dayOfWeek, period, onClose, onSave }) {
+      const { subjects, schedule } = state;
+      const currentSubjId = schedule[dayOfWeek - 1][period - 1].subjectId;
+      const [selected, setSelected] = useState(currentSubjId);
+
+      return (
+        <div className="modal-overlay" onClick={onClose}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+            <div className="sheet-handle" />
+            <div className="sheet-title">
+              {DAYS[dayOfWeek - 1]}요일 {period}교시 ({PERIOD_TIMES[period - 1]})
+            </div>
+            {subjects.length === 0 ? (
+              <div style={{ color: '#6B7280', fontSize: 14, textAlign: 'center', padding: '20px 0' }}>
+                먼저 "과목" 탭에서 과목을 추가해 주세요.
+              </div>
+            ) : (
+              <div className="subject-picker">
+                <div
+                  className={`subject-option${selected === null ? ' selected' : ''}`}
+                  onClick={() => setSelected(null)}
+                >
+                  <span style={{ fontSize: 18 }}>🚫</span>
+                  <span className="subject-option-name">비움 (교시 제거)</span>
+                </div>
+                {subjects.map(s => (
+                  <div
+                    key={s.id}
+                    className={`subject-option${selected === s.id ? ' selected' : ''}`}
+                    onClick={() => setSelected(s.id)}
+                  >
+                    <div className="subject-option-dot" style={{ background: s.colorHex }} />
+                    <span className="subject-option-name">{s.name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
+              <button className="btn-primary" style={{ flex: 1 }} onClick={() => onSave(selected)}>저장</button>
+              <button
+                style={{ flex: 1, height: 56, borderRadius: 18, border: '2px solid #E5E7EB', background: 'white', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}
+                onClick={onClose}
+              >취소</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── SubjectModal ──
+    function SubjectModal({ subject, onClose, onSave, onDelete }) {
+      const [name, setName] = useState(subject?.name || '');
+      const [color, setColor] = useState(subject?.colorHex || PALETTE[0]);
+      const [teacher, setTeacher] = useState(subject?.teacherName || '');
+      const valid = name.trim().length > 0 && name.trim().length <= 10;
+
+      return (
+        <div className="modal-overlay" onClick={onClose}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+            <div className="sheet-handle" />
+            <div className="sheet-title">{subject ? '과목 편집' : '과목 추가'}</div>
+            <div className="form-group">
+              <label className="form-label">과목명 (최대 10자)</label>
+              <input
+                className="form-input"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                maxLength={10}
+                placeholder="예: 국어, 수학, 체육"
+                autoFocus
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">색상</label>
+              <div className="color-picker">
+                {PALETTE.map(c => (
+                  <div
+                    key={c}
+                    className={`color-swatch${color === c ? ' selected' : ''}`}
+                    style={{ background: c }}
+                    onClick={() => setColor(c)}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">담당 선생님 (선택)</label>
+              <input
+                className="form-input"
+                value={teacher}
+                onChange={e => setTeacher(e.target.value)}
+                placeholder="선생님 성함"
+              />
+            </div>
+            <button className="btn-primary" disabled={!valid} onClick={() => onSave(name.trim(), color, teacher.trim() || null)}>
+              {subject ? '수정하기' : '추가하기'}
+            </button>
+            {onDelete && (
+              <button className="btn-danger" style={{ marginTop: 10 }} onClick={onDelete}>과목 삭제</button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ── SupplyModal ──
+    function SupplyModal({ onClose, onSave }) {
+      const [name, setName] = useState('');
+      return (
+        <div className="modal-overlay" onClick={onClose}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+            <div className="sheet-handle" />
+            <div className="sheet-title">준비물 추가</div>
+            <div className="form-group">
+              <label className="form-label">준비물 이름</label>
+              <input
+                className="form-input"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="예: 체육복, 색연필, 리코더"
+                autoFocus
+              />
+            </div>
+            <button className="btn-primary" disabled={!name.trim()} onClick={() => onSave(name.trim())}>
+              추가하기
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Mount ──
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
