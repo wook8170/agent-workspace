@@ -341,9 +341,11 @@
     }
 
     function persistState(sessions, rounds, cycleInRound) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        sessions, rounds, cycleInRound, date: getTodayStr()
-      }));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          sessions, rounds, cycleInRound, date: getTodayStr()
+        }));
+      } catch (_) {}
     }
 
     // Focus session done → two ascending beeps
@@ -468,10 +470,9 @@
       const [timeLeft, setTimeLeft] = useState(25 * 60);
       const [totalSec, setTotalSec] = useState(25 * 60);
 
-      const init = loadPersistedState();
-      const [sessions,     setSessions]     = useState(init.sessions);
-      const [rounds,       setRounds]       = useState(init.rounds);
-      const [cycleInRound, setCycleInRound] = useState(init.cycleInRound);
+      const [sessions,     setSessions]     = useState(() => loadPersistedState().sessions);
+      const [rounds,       setRounds]       = useState(() => loadPersistedState().rounds);
+      const [cycleInRound, setCycleInRound] = useState(() => loadPersistedState().cycleInRound);
 
       const [notif, setNotif] = useState(null); // { emoji, text, kind }
       const notifTimer = useRef(null);
@@ -590,7 +591,7 @@
         <div className="app">
           <div className="app-title">🍅 뽀모도로 타이머</div>
 
-          <RoundDots cycleInRound={cycleInRound} isLongBreak={isLongBreakPhase} />
+          <RoundDots cycleInRound={isLongBreakPhase ? CYCLES_PER_ROUND : cycleInRound} isLongBreak={isLongBreakPhase} />
 
           {/* ── Setup / Waiting ── */}
           {(phase === 'setup' || phase === 'waiting') && (
