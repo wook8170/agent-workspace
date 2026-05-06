@@ -46,6 +46,41 @@
       letter-spacing: -0.02em;
     }
 
+    .linked-subject-card {
+      margin: 0 auto 18px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #fff6da 0%, #ffedd5 100%);
+      box-shadow: inset 0 0 0 1px rgba(251,146,60,0.16);
+      text-align: left;
+    }
+
+    .linked-subject-label {
+      display: block;
+      font-size: 0.76rem;
+      font-weight: 900;
+      color: #b45309;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .linked-subject-name {
+      display: block;
+      margin-top: 6px;
+      font-size: 1.28rem;
+      font-weight: 900;
+      color: #7c2d12;
+      letter-spacing: -0.02em;
+    }
+
+    .linked-subject-hint {
+      margin-top: 6px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #9a3412;
+      line-height: 1.45;
+    }
+
     /* ── Round progress dots ── */
     .round-dots {
       display: flex;
@@ -615,6 +650,7 @@
     const { useState, useEffect, useRef } = React;
 
     const STORAGE_KEY = 'pomodoro_v2';
+    const TIMER_CONTEXT_KEY = 'pomodoro_timer_context_v1';
     const LONG_BREAK_MIN = 15;
     const CYCLES_PER_ROUND = 4;
 
@@ -631,6 +667,27 @@
         if (date !== getTodayStr()) return { sessions: 0, rounds: 0, cycleInRound: 0 };
         return { sessions: sessions | 0, rounds: rounds | 0, cycleInRound: cycleInRound | 0 };
       } catch { return { sessions: 0, rounds: 0, cycleInRound: 0 }; }
+    }
+
+    function loadTimerContext() {
+      try {
+        const raw = localStorage.getItem(TIMER_CONTEXT_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed && parsed.subject ? parsed : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function saveTimerContext(context) {
+      try {
+        if (!context) {
+          localStorage.removeItem(TIMER_CONTEXT_KEY);
+          return;
+        }
+        localStorage.setItem(TIMER_CONTEXT_KEY, JSON.stringify(context));
+      } catch (_) {}
     }
 
     function persistState(sessions, rounds, cycleInRound) {
@@ -1002,12 +1059,14 @@
       const [sessions,     setSessions]     = useState(() => loadPersistedState().sessions);
       const [rounds,       setRounds]       = useState(() => loadPersistedState().rounds);
       const [cycleInRound, setCycleInRound] = useState(() => loadPersistedState().cycleInRound);
+      const [timerContext] = useState(() => loadTimerContext());
 
       const [notif, setNotif] = useState(null); // { emoji, text, kind }
       const [opsLog, setOpsLog] = useState(() => loadOpsLog());
       const [sending, setSending] = useState(false);
       const [retrying, setRetrying] = useState({});
       const notifTimer = useRef(null);
+      const didConsumeAutoStart = useRef(false);
 
       function refreshOpsLog() { setOpsLog(loadOpsLog()); }
 
@@ -1086,6 +1145,16 @@
         document.body.classList.toggle('longbreak-bg', isLongBreak);
       }, [phase]);
 
+      useEffect(() => {
+        if (!timerContext?.autoStart || didConsumeAutoStart.current) return;
+        didConsumeAutoStart.current = true;
+        const fSec = focusMin * 60;
+        setTotalSec(fSec);
+        setTimeLeft(fSec);
+        setPhase('focus');
+        saveTimerContext({ ...timerContext, autoStart: false });
+      }, [focusMin, timerContext]);
+
       function showNotif(emoji, text, kind) {
         setNotif({ emoji, text, kind });
         clearTimeout(notifTimer.current);
@@ -1161,6 +1230,16 @@
       return (
         <div className="app">
           <div className="app-title">🍅 뽀모도로 타이머</div>
+
+          {timerContext?.subject && (
+            <div className="linked-subject-card" aria-live="polite">
+              <span className="linked-subject-label">선택한 과목</span>
+              <span className="linked-subject-name">{timerContext.subject}</span>
+              <div className="linked-subject-hint">
+                오늘 시간표에서 고른 과목과 연결된 집중 타이머예요.
+              </div>
+            </div>
+          )}
 
           <RoundDots cycleInRound={isLongBreakPhase ? CYCLES_PER_ROUND : cycleInRound} isLongBreak={isLongBreakPhase} />
 
