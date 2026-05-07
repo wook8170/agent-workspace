@@ -57,6 +57,10 @@
       box-shadow: 0 10px 36px rgba(6,182,212,0.35);
     }
 
+    .summary-card.selected-ready {
+      box-shadow: 0 14px 40px rgba(251,191,36,0.42);
+    }
+
     .summary-date {
       font-size: 1.05rem;
       font-weight: 700;
@@ -161,6 +165,68 @@
       opacity: 0.95;
     }
 
+    .timer-launch {
+      margin-top: 18px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 18px;
+      padding: 14px;
+    }
+
+    .timer-launch-label {
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      opacity: 0.82;
+      text-transform: uppercase;
+    }
+
+    .timer-launch-subject {
+      display: block;
+      margin-top: 6px;
+      font-size: 1.45rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .timer-launch-hint {
+      margin-top: 8px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      opacity: 0.92;
+    }
+
+    .timer-launch-btn {
+      width: 100%;
+      margin-top: 14px;
+      border: none;
+      border-radius: 16px;
+      padding: 14px 18px;
+      font-size: 1rem;
+      font-weight: 900;
+      color: #1e3a8a;
+      background: #fde68a;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.2s ease;
+      box-shadow: 0 8px 24px rgba(253,230,138,0.34);
+    }
+
+    .timer-launch-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 30px rgba(253,230,138,0.38);
+    }
+
+    .timer-launch-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 6px 18px rgba(253,230,138,0.28);
+    }
+
+    .timer-launch-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
     .countdown-num {
       font-size: 1.2rem;
       font-weight: 900;
@@ -254,6 +320,18 @@
       outline-offset: -2.5px;
     }
 
+    .grid-cell.selectable {
+      cursor: pointer;
+    }
+
+    .grid-cell.selected-subject {
+      outline: 3px solid rgba(251,191,36,0.98);
+      box-shadow:
+        0 0 0 3px rgba(255,255,255,0.92) inset,
+        0 12px 22px rgba(59,130,246,0.16);
+      transform: translateY(-1px);
+    }
+
     @keyframes pulseBorder {
       0%, 100% { box-shadow: 0 2px 8px rgba(0,0,0,0.12), 0 0 0 0 rgba(255,255,255,0.6); }
       50%       { box-shadow: 0 2px 8px rgba(0,0,0,0.12), 0 0 0 4px rgba(255,255,255,0.25); }
@@ -307,6 +385,7 @@
     };
 
     const STORAGE_KEY = 'timetable_v1';
+    const TIMER_CONTEXT_KEY = 'pomodoro_timer_context_v1';
 
     function loadData() {
       try {
@@ -348,6 +427,17 @@
       if (m === 0) return `${s}초`;
       if (s === 0) return `${m}분`;
       return `${m}분 ${s}초`;
+    }
+
+    function saveTimerContext(subject) {
+      try {
+        localStorage.setItem(TIMER_CONTEXT_KEY, JSON.stringify({
+          subject,
+          autoStart: true,
+          selectedAt: new Date().toISOString(),
+          source: 'today-timetable',
+        }));
+      } catch (_) {}
     }
 
     // ── Summary computation ───────────────────────────────────────────────────
@@ -454,7 +544,7 @@
     }
 
     // ── SummaryCard component ────────────────────────────────────────────────
-    function SummaryCard({ schedule, colors }) {
+    function SummaryCard({ schedule, colors, selectedSubject, onStartTimer }) {
       const [summary, setSummary] = useState(() => calcSummary(schedule, colors));
 
       useEffect(() => {
@@ -474,7 +564,11 @@
       const { dateStr, totalCount, remainingCount, nextSubject, nextColor, status, countdownSec } = summary;
 
       return (
-        <div className="summary-card" role="region" aria-label="오늘의 수업 요약">
+        <div
+          className={`summary-card${selectedSubject ? ' selected-ready' : ''}`}
+          role="region"
+          aria-label="오늘의 수업 요약"
+        >
           <div className="summary-date">{dateStr}</div>
 
           <div className="summary-stats" aria-label={`전체 ${totalCount}교시, 남은 교시 ${remainingCount}`}>
@@ -504,12 +598,30 @@
               {getCountdownMsg(status, nextSubject, countdownSec)}
             </span>
           </div>
+
+          <div className="timer-launch" aria-live="polite">
+            <span className="timer-launch-label">뽀모도로 연결 과목</span>
+            <span className="timer-launch-subject">
+              {selectedSubject || '오늘 시간표에서 과목을 골라주세요'}
+            </span>
+            <div className="timer-launch-hint">
+              {selectedSubject ? '이 과목으로 집중 타이머를 바로 시작할 수 있어요.' : '과목을 선택하면 타이머 화면으로 이동해요.'}
+            </div>
+            <button
+              className="timer-launch-btn"
+              type="button"
+              onClick={onStartTimer}
+              disabled={!selectedSubject}
+            >
+              {selectedSubject ? `${selectedSubject} 타이머 시작하기 🚀` : '과목을 먼저 선택해요'}
+            </button>
+          </div>
         </div>
       );
     }
 
     // ── WeeklyGrid component ─────────────────────────────────────────────────
-    function WeeklyGrid({ schedule, colors }) {
+    function WeeklyGrid({ schedule, colors, selectedSubject, onSelectSubject }) {
       const dayKey   = getDayKey();
       const todayIdx = dayKey ? DAYS.indexOf(dayKey) : -1;
       const nowM     = nowMin();
@@ -548,8 +660,10 @@
                   {DAYS.map((d, di) => {
                     const subj = (schedule[d] || [])[ct.period - 1] || null;
                     const bg   = subj ? (colors[subj] || '#94a3b8') : null;
-                    const isToday   = di === todayIdx;
-                    const isCurrent = isToday && ct.period === currentPeriod;
+                    const isToday      = di === todayIdx;
+                    const isCurrent    = isToday && ct.period === currentPeriod;
+                    const isSelected   = isToday && subj === selectedSubject;
+                    const isSelectable = isToday && !!subj;
                     return (
                       <div
                         key={d}
@@ -558,9 +672,21 @@
                           !subj      ? 'empty'          : '',
                           isToday    ? 'today-col'      : '',
                           isCurrent  ? 'current-period' : '',
+                          isSelectable ? 'selectable' : '',
+                          isSelected ? 'selected-subject' : '',
                         ].filter(Boolean).join(' ')}
                         style={subj ? { background: bg } : {}}
                         aria-label={subj ? `${d}요일 ${ct.period}교시 ${subj}` : `${d}요일 ${ct.period}교시 없음`}
+                        role={isSelectable ? 'button' : undefined}
+                        tabIndex={isSelectable ? 0 : undefined}
+                        aria-pressed={isSelectable ? isSelected : undefined}
+                        onClick={isSelectable ? () => onSelectSubject(subj) : undefined}
+                        onKeyDown={isSelectable ? (e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onSelectSubject(subj);
+                          }
+                        } : undefined}
                       >
                         {subj || ''}
                       </div>
@@ -577,12 +703,29 @@
     // ── App ──────────────────────────────────────────────────────────────────
     function App() {
       const [data] = useState(() => loadData() || getDefaultData());
+      const [selectedSubject, setSelectedSubject] = useState(null);
+
+      function handleStartTimer() {
+        if (!selectedSubject) return;
+        saveTimerContext(selectedSubject);
+        window.location.href = './index.html';
+      }
 
       return (
         <div className="app">
           <div className="app-title">📅 오늘 시간표</div>
-          <SummaryCard schedule={data.schedule} colors={data.subjectColors} />
-          <WeeklyGrid  schedule={data.schedule} colors={data.subjectColors} />
+          <SummaryCard
+            schedule={data.schedule}
+            colors={data.subjectColors}
+            selectedSubject={selectedSubject}
+            onStartTimer={handleStartTimer}
+          />
+          <WeeklyGrid
+            schedule={data.schedule}
+            colors={data.subjectColors}
+            selectedSubject={selectedSubject}
+            onSelectSubject={setSelectedSubject}
+          />
         </div>
       );
     }
